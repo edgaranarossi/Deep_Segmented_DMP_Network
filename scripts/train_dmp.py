@@ -10,7 +10,7 @@ import torch
 import pickle as pkl
 from datetime import datetime
 init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Custom_Deep-DMP'
+ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Segmented-Deep-DMPs'
 chdir(ROOT_DIR)
 
 from tensorboardX import SummaryWriter
@@ -39,11 +39,11 @@ def writeLog(log):
 def writeInitLog():
     writeLog('Network created: ' + init_time)
     if model_param.output_mode == 'dmp':
-        writeLog('Model : Custom_Deep-DMP.scripts.utils.networks.CNNDMPNet')
+        writeLog('Model : Segmented-Deep-DMPs.scripts.utils.networks.CNNDMPNet')
     elif model_param.output_mode == 'traj' and model_param.dmp_param.segments == None:
-        writeLog('Model : Custom_Deep-DMP.scripts.utils.networks.NewCNNDMPNet')
+        writeLog('Model : Segmented-Deep-DMPs.scripts.utils.networks.NewCNNDMPNet')
     elif model_param.output_mode == 'traj' and model_param.dmp_param.segments != None:
-        writeLog('Model : Custom_Deep-DMP.scripts.utils.networks.SegmentedDMPNet')
+        writeLog('Model : Segmented-Deep-DMPs.scripts.utils.networks.SegmentedDMPNet')
     writeLog('Data Path : ' + FILE_PATH)
     writeLog('Model Save Path : ' + MODEL_SAVE_PATH)
     writeLog('Layer Sizes : ' + str(model_param.layer_sizes))

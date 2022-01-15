@@ -5,7 +5,7 @@ from os import makedirs, getcwd, chdir
 from os.path import join, isdir, dirname
 import pickle as pkl
 import torch
-ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Custom_Deep-DMP'
+ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Segmented-Deep-DMPs'
 chdir(ROOT_DIR)
 
 MODEL_NAME = 'Model_DMP_Integrator_2022-01-07_20-51-40'

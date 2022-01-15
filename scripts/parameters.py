@@ -26,7 +26,7 @@ class TrainingParameters:
         self.plot_interval = 5
 
         # Data parameters
-        self.batch_size = 100
+        self.batch_size = 50
         self.training_ratio = 7
         self.validation_ratio = 2
         self.test_ratio = 1
@@ -67,7 +67,7 @@ class ModelParameters:
         self.input_mode = 'dmp_param_scaled'
         self.output_mode = 'dmp_traj'
         self.image_dim = (1, 50, 50)
-        self.layer_sizes = [512, 512, 512] # Define hidden layers sizes (No need to define output layer size)
+        self.layer_sizes = [1024, 1024, 1024] # Define hidden layers sizes (No need to define output layer size)
 
         self.dmp_param = DMPParameters()
 
