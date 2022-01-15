@@ -1,4 +1,4 @@
-from data_generator import generate_carrot, generate_random_dmp, generate_cutting_trajectory, split_traj_into_segment, generate_dmps, trajpoints2dmp
+from utils.data_generator import generate_carrot, generate_random_dmp, generate_cutting_trajectory, split_traj_into_segment, generate_dmps, trajpoints2dmp
 from utils.dataset_importer import Scale
 import numpy as np
 import pickle as pkl
