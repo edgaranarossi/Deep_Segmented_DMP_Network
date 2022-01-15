@@ -1,0 +1,251 @@
+
+Network created: 2022-01-11_14-53-23
+Model : Custom_Deep-DMP.scripts.utils.networks.DMPIntegratorNet
+Data Path : D:/rllab/scripts/dmp/scripts/Custom_Deep-DMP\scripts/Data_Generator/generated\dmp_parameter-traj_N_5000000_points_2_n-bf_10_ay_15.pkl
+Model Save Path : D:\rllab\scripts\dmp\scripts\Custom_Deep-DMP\models\Model_DMP_Integrator_2022-01-11_14-53-23
+Layer Sizes : [24, 128, 128, 128, 40]
+Importing dmp_parameter-traj_N_5000000_n-bf_10_ay_15.pkl ...
+dmp_parameter-traj_N_5000000_n-bf_10_ay_15.pkl imported
+Splitting dataset
+Saving training parameters
+Loss Function : MSELoss()
+Optimizer : Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 0.001
+    lr: 0.0001
+    weight_decay: 0
+)
+Loss Function : MSELoss()
+Optimizer : Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 0.001
+    lr: 0.0001
+    weight_decay: 0
+)
+Loss Function : MSELoss()
+Optimizer : Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 0.001
+    lr: 0.0001
+    weight_decay: 0
+)
+Initial Validation Loss : tensor(953.0923, device='cuda:0')
+
+Epoch : 1 | Train Loss : 549.4360352 | Val. Loss : 315.5270386 | Val. Fail : 0
+Epoch : 2 | Train Loss : 234.8774109 | Val. Loss : 186.5093079 | Val. Fail : 0
+Epoch : 3 | Train Loss : 145.0304413 | Val. Loss : 91.9710617 | Val. Fail : 0
+Epoch : 4 | Train Loss : 61.9532318 | Val. Loss : 34.8523827 | Val. Fail : 0
+Epoch : 5 | Train Loss : 24.3252850 | Val. Loss : 11.5421228 | Val. Fail : 0
+Epoch : 6 | Train Loss : 11.1278496 | Val. Loss : 4.3093824 | Val. Fail : 0
+Epoch : 7 | Train Loss : 6.8091364 | Val. Loss : 1.6392354 | Val. Fail : 0
+Epoch : 8 | Train Loss : 4.9023395 | Val. Loss : 0.6300850 | Val. Fail : 0
+Epoch : 9 | Train Loss : 4.0663462 | Val. Loss : 0.2894273 | Val. Fail : 0
+Epoch : 10 | Train Loss : 3.7213831 | Val. Loss : 0.3518037 | Val. Fail : 1
+Epoch : 11 | Train Loss : 3.5628295 | Val. Loss : 0.1209967 | Val. Fail : 0
+Epoch : 12 | Train Loss : 3.4637167 | Val. Loss : 0.1244050 | Val. Fail : 1
+Epoch : 13 | Train Loss : 3.4003108 | Val. Loss : 0.1605324 | Val. Fail : 2
+Epoch : 14 | Train Loss : 3.3686507 | Val. Loss : 0.0853109 | Val. Fail : 0
+Epoch : 15 | Train Loss : 3.3260143 | Val. Loss : 0.0746755 | Val. Fail : 0
+Epoch : 16 | Train Loss : 3.3058915 | Val. Loss : 0.0752527 | Val. Fail : 1
+Epoch : 17 | Train Loss : 3.2726750 | Val. Loss : 0.0533677 | Val. Fail : 0
+Epoch : 18 | Train Loss : 3.2543254 | Val. Loss : 0.0736946 | Val. Fail : 1
+Epoch : 19 | Train Loss : 3.2500508 | Val. Loss : 0.0553874 | Val. Fail : 2
+Epoch : 20 | Train Loss : 3.2298222 | Val. Loss : 0.0531120 | Val. Fail : 0
+Epoch : 21 | Train Loss : 3.2268159 | Val. Loss : 0.0475149 | Val. Fail : 0
+Epoch : 22 | Train Loss : 3.1970389 | Val. Loss : 0.0667486 | Val. Fail : 1
+Epoch : 23 | Train Loss : 3.1851039 | Val. Loss : 0.0533357 | Val. Fail : 2
+Epoch : 24 | Train Loss : 3.1691329 | Val. Loss : 0.0654231 | Val. Fail : 3
+Epoch : 25 | Train Loss : 3.1650572 | Val. Loss : 0.0490287 | Val. Fail : 4
+Epoch : 26 | Train Loss : 3.1539359 | Val. Loss : 0.0631670 | Val. Fail : 5
+Epoch : 27 | Train Loss : 3.1377559 | Val. Loss : 0.0550893 | Val. Fail : 6
+Epoch : 28 | Train Loss : 3.1319687 | Val. Loss : 0.0505859 | Val. Fail : 7
+Epoch : 29 | Train Loss : 3.1179237 | Val. Loss : 0.0758391 | Val. Fail : 8
+Epoch : 30 | Train Loss : 3.1088734 | Val. Loss : 0.0788131 | Val. Fail : 9
+Epoch : 31 | Train Loss : 3.1036935 | Val. Loss : 0.0992868 | Val. Fail : 10
+Epoch : 32 | Train Loss : 3.0974402 | Val. Loss : 0.1143690 | Val. Fail : 11
+Epoch : 33 | Train Loss : 3.0866928 | Val. Loss : 0.1798271 | Val. Fail : 12
+Epoch : 34 | Train Loss : 3.0686524 | Val. Loss : 0.0458973 | Val. Fail : 0
+Epoch : 35 | Train Loss : 3.0650094 | Val. Loss : 0.0638671 | Val. Fail : 1
+Epoch : 36 | Train Loss : 3.0494988 | Val. Loss : 0.0488062 | Val. Fail : 2
+Epoch : 37 | Train Loss : 3.0379770 | Val. Loss : 0.0558706 | Val. Fail : 3
+Epoch : 38 | Train Loss : 3.0311775 | Val. Loss : 0.0517784 | Val. Fail : 4
+Epoch : 39 | Train Loss : 3.0206518 | Val. Loss : 0.0808899 | Val. Fail : 5
+Epoch : 40 | Train Loss : 3.0186942 | Val. Loss : 0.0719926 | Val. Fail : 6
+Epoch : 41 | Train Loss : 3.0023005 | Val. Loss : 0.0513611 | Val. Fail : 7
+Epoch : 42 | Train Loss : 2.9972186 | Val. Loss : 0.0398331 | Val. Fail : 0
+Epoch : 43 | Train Loss : 2.9887033 | Val. Loss : 0.0354497 | Val. Fail : 0
+Epoch : 44 | Train Loss : 2.9680402 | Val. Loss : 0.1083078 | Val. Fail : 1
+Epoch : 45 | Train Loss : 2.9664524 | Val. Loss : 0.1044453 | Val. Fail : 2
+Epoch : 46 | Train Loss : 2.9551551 | Val. Loss : 0.0320642 | Val. Fail : 0
+Epoch : 47 | Train Loss : 2.9490249 | Val. Loss : 0.0850210 | Val. Fail : 1
+Epoch : 48 | Train Loss : 2.9332259 | Val. Loss : 0.0548373 | Val. Fail : 2
+Epoch : 49 | Train Loss : 2.9288664 | Val. Loss : 0.0689803 | Val. Fail : 3
+Epoch : 50 | Train Loss : 2.9177155 | Val. Loss : 0.0384334 | Val. Fail : 4
+Epoch : 51 | Train Loss : 2.9201639 | Val. Loss : 0.0550606 | Val. Fail : 5
+Epoch : 52 | Train Loss : 2.9053159 | Val. Loss : 0.1913819 | Val. Fail : 6
+Epoch : 53 | Train Loss : 2.8882377 | Val. Loss : 0.0412952 | Val. Fail : 7
+Epoch : 54 | Train Loss : 2.8771720 | Val. Loss : 0.0348806 | Val. Fail : 8
+Epoch : 55 | Train Loss : 2.8681633 | Val. Loss : 0.0780848 | Val. Fail : 9
+Epoch : 56 | Train Loss : 2.8616643 | Val. Loss : 0.1034674 | Val. Fail : 10
+Epoch : 57 | Train Loss : 2.8604252 | Val. Loss : 0.0682823 | Val. Fail : 11
+Epoch : 58 | Train Loss : 2.8422949 | Val. Loss : 0.0349561 | Val. Fail : 12
+Epoch : 59 | Train Loss : 2.8273032 | Val. Loss : 0.0734201 | Val. Fail : 13
+Epoch : 60 | Train Loss : 2.8307478 | Val. Loss : 0.0470827 | Val. Fail : 14
+Epoch : 61 | Train Loss : 2.8187284 | Val. Loss : 0.0577726 | Val. Fail : 15
+Epoch : 62 | Train Loss : 2.8093848 | Val. Loss : 0.0543557 | Val. Fail : 16
+Epoch : 63 | Train Loss : 2.8110988 | Val. Loss : 0.0385915 | Val. Fail : 17
+Epoch : 64 | Train Loss : 2.7884891 | Val. Loss : 0.0641017 | Val. Fail : 18
+Epoch : 65 | Train Loss : 2.7889760 | Val. Loss : 0.0850007 | Val. Fail : 19
+Epoch : 66 | Train Loss : 2.7768908 | Val. Loss : 0.0623791 | Val. Fail : 20
+Epoch : 67 | Train Loss : 2.7670958 | Val. Loss : 0.0560842 | Val. Fail : 21
+Epoch : 68 | Train Loss : 2.7632475 | Val. Loss : 0.1411287 | Val. Fail : 22
+Epoch : 69 | Train Loss : 2.7530019 | Val. Loss : 0.0393350 | Val. Fail : 23
+Epoch : 70 | Train Loss : 2.7477193 | Val. Loss : 0.0377130 | Val. Fail : 24
+Epoch : 71 | Train Loss : 2.7397239 | Val. Loss : 0.0300578 | Val. Fail : 0
+Epoch : 72 | Train Loss : 2.7218032 | Val. Loss : 0.0297181 | Val. Fail : 0
+Epoch : 73 | Train Loss : 2.7199788 | Val. Loss : 0.0307352 | Val. Fail : 1
+Epoch : 74 | Train Loss : 2.7147210 | Val. Loss : 0.0252129 | Val. Fail : 0
+Epoch : 75 | Train Loss : 2.6991022 | Val. Loss : 0.0499914 | Val. Fail : 1
+Epoch : 76 | Train Loss : 2.6922681 | Val. Loss : 0.0803423 | Val. Fail : 2
+Epoch : 77 | Train Loss : 2.6757934 | Val. Loss : 0.0331423 | Val. Fail : 3
+Epoch : 78 | Train Loss : 2.6800802 | Val. Loss : 0.0692785 | Val. Fail : 4
+Epoch : 79 | Train Loss : 2.6722901 | Val. Loss : 0.0273151 | Val. Fail : 5
+Epoch : 80 | Train Loss : 2.6596305 | Val. Loss : 0.0589574 | Val. Fail : 6
+Epoch : 81 | Train Loss : 2.6557558 | Val. Loss : 0.0378384 | Val. Fail : 7
+Epoch : 82 | Train Loss : 2.6554980 | Val. Loss : 0.0449341 | Val. Fail : 8
+Epoch : 83 | Train Loss : 2.6456418 | Val. Loss : 0.0375220 | Val. Fail : 9
+Epoch : 84 | Train Loss : 2.6237946 | Val. Loss : 0.0393662 | Val. Fail : 10
+Epoch : 85 | Train Loss : 2.6218669 | Val. Loss : 0.0307070 | Val. Fail : 11
+Epoch : 86 | Train Loss : 2.6115136 | Val. Loss : 0.0462208 | Val. Fail : 12
+Epoch : 87 | Train Loss : 2.6036475 | Val. Loss : 0.0393517 | Val. Fail : 13
+Epoch : 88 | Train Loss : 2.5991454 | Val. Loss : 0.0299407 | Val. Fail : 14
+Epoch : 89 | Train Loss : 2.5905926 | Val. Loss : 0.0328998 | Val. Fail : 15
+Epoch : 90 | Train Loss : 2.5855417 | Val. Loss : 0.1048611 | Val. Fail : 16
+Epoch : 91 | Train Loss : 2.5689116 | Val. Loss : 0.0226941 | Val. Fail : 0
+Epoch : 92 | Train Loss : 2.5649638 | Val. Loss : 0.0553213 | Val. Fail : 1
+Epoch : 93 | Train Loss : 2.5523741 | Val. Loss : 0.0548516 | Val. Fail : 2
+Epoch : 94 | Train Loss : 2.5571649 | Val. Loss : 0.0315713 | Val. Fail : 3
+Epoch : 95 | Train Loss : 2.5505762 | Val. Loss : 0.0382866 | Val. Fail : 4
+Epoch : 96 | Train Loss : 2.5435402 | Val. Loss : 0.0380323 | Val. Fail : 5
+Epoch : 97 | Train Loss : 2.5271986 | Val. Loss : 0.0556245 | Val. Fail : 6
+Epoch : 98 | Train Loss : 2.5227873 | Val. Loss : 0.0431528 | Val. Fail : 7
+Epoch : 99 | Train Loss : 2.5162179 | Val. Loss : 0.0501990 | Val. Fail : 8
+Epoch : 100 | Train Loss : 2.5099192 | Val. Loss : 0.0231978 | Val. Fail : 9
+Epoch : 101 | Train Loss : 2.4982414 | Val. Loss : 0.0389530 | Val. Fail : 10
+Epoch : 102 | Train Loss : 2.4868059 | Val. Loss : 0.0658314 | Val. Fail : 11
+Epoch : 103 | Train Loss : 2.4876060 | Val. Loss : 0.0315486 | Val. Fail : 12
+Epoch : 104 | Train Loss : 2.4751923 | Val. Loss : 0.0461953 | Val. Fail : 13
+Epoch : 105 | Train Loss : 2.4696498 | Val. Loss : 0.0257996 | Val. Fail : 14
+Epoch : 106 | Train Loss : 2.4632916 | Val. Loss : 0.0238543 | Val. Fail : 15
+Epoch : 107 | Train Loss : 2.4588761 | Val. Loss : 0.0406250 | Val. Fail : 16
+Epoch : 108 | Train Loss : 2.4452913 | Val. Loss : 0.0461993 | Val. Fail : 17
+Epoch : 109 | Train Loss : 2.4381175 | Val. Loss : 0.0378630 | Val. Fail : 18
+Epoch : 110 | Train Loss : 2.4357171 | Val. Loss : 0.1010932 | Val. Fail : 19
+Epoch : 111 | Train Loss : 2.4243577 | Val. Loss : 0.0393227 | Val. Fail : 20
+Epoch : 112 | Train Loss : 2.4142978 | Val. Loss : 0.0286745 | Val. Fail : 21
+Epoch : 113 | Train Loss : 2.4068112 | Val. Loss : 0.0466685 | Val. Fail : 22
+Epoch : 114 | Train Loss : 2.4133887 | Val. Loss : 0.0333903 | Val. Fail : 23
+Epoch : 115 | Train Loss : 2.4008462 | Val. Loss : 0.0419759 | Val. Fail : 24
+Epoch : 116 | Train Loss : 2.3917696 | Val. Loss : 0.0440070 | Val. Fail : 25
+Epoch : 117 | Train Loss : 2.3854589 | Val. Loss : 0.0394866 | Val. Fail : 26
+Epoch : 118 | Train Loss : 2.3699327 | Val. Loss : 0.0259004 | Val. Fail : 27
+Epoch : 119 | Train Loss : 2.3683798 | Val. Loss : 0.0365999 | Val. Fail : 28
+Epoch : 120 | Train Loss : 2.3614004 | Val. Loss : 0.0991509 | Val. Fail : 29
+Epoch : 121 | Train Loss : 2.3527203 | Val. Loss : 0.0246042 | Val. Fail : 30
+Epoch : 122 | Train Loss : 2.3456416 | Val. Loss : 0.0274777 | Val. Fail : 31
+Epoch : 123 | Train Loss : 2.3415828 | Val. Loss : 0.0518577 | Val. Fail : 32
+Epoch : 124 | Train Loss : 2.3316140 | Val. Loss : 0.0441069 | Val. Fail : 33
+Epoch : 125 | Train Loss : 2.3288260 | Val. Loss : 0.0543974 | Val. Fail : 34
+Epoch : 126 | Train Loss : 2.3230987 | Val. Loss : 0.0826274 | Val. Fail : 35
+Epoch : 127 | Train Loss : 2.3138580 | Val. Loss : 0.0452861 | Val. Fail : 36
+Epoch : 128 | Train Loss : 2.3053188 | Val. Loss : 0.0669237 | Val. Fail : 37
+Epoch : 129 | Train Loss : 2.2979486 | Val. Loss : 0.0647463 | Val. Fail : 38
+Epoch : 130 | Train Loss : 2.2924449 | Val. Loss : 0.0477143 | Val. Fail : 39
+Epoch : 131 | Train Loss : 2.2905347 | Val. Loss : 0.0329846 | Val. Fail : 40
+Epoch : 132 | Train Loss : 2.2782979 | Val. Loss : 0.0482416 | Val. Fail : 41
+Epoch : 133 | Train Loss : 2.2787321 | Val. Loss : 0.0289610 | Val. Fail : 42
+Epoch : 134 | Train Loss : 2.2665660 | Val. Loss : 0.0314877 | Val. Fail : 43
+Epoch : 135 | Train Loss : 2.2600341 | Val. Loss : 0.0245154 | Val. Fail : 44
+Epoch : 136 | Train Loss : 2.2480516 | Val. Loss : 0.0314931 | Val. Fail : 45
+Epoch : 137 | Train Loss : 2.2527697 | Val. Loss : 0.0217102 | Val. Fail : 0
+Epoch : 138 | Train Loss : 2.2436223 | Val. Loss : 0.0649896 | Val. Fail : 1
+Epoch : 139 | Train Loss : 2.2309306 | Val. Loss : 0.0647566 | Val. Fail : 2
+Epoch : 140 | Train Loss : 2.2231870 | Val. Loss : 0.0249445 | Val. Fail : 3
+Epoch : 141 | Train Loss : 2.2233133 | Val. Loss : 0.0515334 | Val. Fail : 4
+Epoch : 142 | Train Loss : 2.2135165 | Val. Loss : 0.0400026 | Val. Fail : 5
+Epoch : 143 | Train Loss : 2.2112677 | Val. Loss : 0.0390531 | Val. Fail : 6
+Epoch : 144 | Train Loss : 2.2022903 | Val. Loss : 0.0283347 | Val. Fail : 7
+Epoch : 145 | Train Loss : 2.1937957 | Val. Loss : 0.0306885 | Val. Fail : 8
+Epoch : 146 | Train Loss : 2.1908641 | Val. Loss : 0.0295845 | Val. Fail : 9
+Epoch : 147 | Train Loss : 2.1812189 | Val. Loss : 0.0362320 | Val. Fail : 10
+Epoch : 148 | Train Loss : 2.1716864 | Val. Loss : 0.0349663 | Val. Fail : 11
+Epoch : 149 | Train Loss : 2.1730726 | Val. Loss : 0.0376667 | Val. Fail : 12
+Epoch : 150 | Train Loss : 2.1631660 | Val. Loss : 0.0234203 | Val. Fail : 13
+Epoch : 151 | Train Loss : 2.1580992 | Val. Loss : 0.0344599 | Val. Fail : 14
+Epoch : 152 | Train Loss : 2.1511953 | Val. Loss : 0.0222640 | Val. Fail : 15
+Epoch : 153 | Train Loss : 2.1505375 | Val. Loss : 0.0381803 | Val. Fail : 16
+Epoch : 154 | Train Loss : 2.1363938 | Val. Loss : 0.0574003 | Val. Fail : 17
+Epoch : 155 | Train Loss : 2.1345170 | Val. Loss : 0.0315374 | Val. Fail : 18
+Epoch : 156 | Train Loss : 2.1210237 | Val. Loss : 0.0310889 | Val. Fail : 19
+Epoch : 157 | Train Loss : 2.1242874 | Val. Loss : 0.0408292 | Val. Fail : 20
+Epoch : 158 | Train Loss : 2.1156483 | Val. Loss : 0.0296565 | Val. Fail : 21
+Epoch : 159 | Train Loss : 2.1073935 | Val. Loss : 0.0277970 | Val. Fail : 22
+Epoch : 160 | Train Loss : 2.1031139 | Val. Loss : 0.0291564 | Val. Fail : 23
+Epoch : 161 | Train Loss : 2.1009836 | Val. Loss : 0.0353471 | Val. Fail : 24
+Epoch : 162 | Train Loss : 2.0869279 | Val. Loss : 0.0303094 | Val. Fail : 25
+Epoch : 163 | Train Loss : 2.0840757 | Val. Loss : 0.0357812 | Val. Fail : 26
+Epoch : 164 | Train Loss : 2.0753715 | Val. Loss : 0.0246022 | Val. Fail : 27
+Epoch : 165 | Train Loss : 2.0742846 | Val. Loss : 0.0442185 | Val. Fail : 28
+Epoch : 166 | Train Loss : 2.0662653 | Val. Loss : 0.0228607 | Val. Fail : 29
+Epoch : 167 | Train Loss : 2.0601997 | Val. Loss : 0.0194783 | Val. Fail : 0
+Epoch : 168 | Train Loss : 2.0496948 | Val. Loss : 0.0426118 | Val. Fail : 1
+Epoch : 169 | Train Loss : 2.0472150 | Val. Loss : 0.0363948 | Val. Fail : 2
+Epoch : 170 | Train Loss : 2.0427251 | Val. Loss : 0.0407623 | Val. Fail : 3
+Epoch : 171 | Train Loss : 2.0397611 | Val. Loss : 0.0285533 | Val. Fail : 4
+Epoch : 172 | Train Loss : 2.0278707 | Val. Loss : 0.0354192 | Val. Fail : 5
+Epoch : 173 | Train Loss : 2.0256379 | Val. Loss : 0.0285840 | Val. Fail : 6
+Epoch : 174 | Train Loss : 2.0172927 | Val. Loss : 0.0255141 | Val. Fail : 7
+Epoch : 175 | Train Loss : 2.0088744 | Val. Loss : 0.0395810 | Val. Fail : 8
+Epoch : 176 | Train Loss : 2.0065932 | Val. Loss : 0.0264638 | Val. Fail : 9
+Epoch : 177 | Train Loss : 1.9997042 | Val. Loss : 0.0380897 | Val. Fail : 10
+Epoch : 178 | Train Loss : 1.9992491 | Val. Loss : 0.0537112 | Val. Fail : 11
+Epoch : 179 | Train Loss : 1.9933852 | Val. Loss : 0.0289451 | Val. Fail : 12
+Epoch : 180 | Train Loss : 1.9875032 | Val. Loss : 0.0217319 | Val. Fail : 13
+Epoch : 181 | Train Loss : 1.9817237 | Val. Loss : 0.0238920 | Val. Fail : 14
+Epoch : 182 | Train Loss : 1.9735712 | Val. Loss : 0.0379394 | Val. Fail : 15
+Epoch : 183 | Train Loss : 1.9724277 | Val. Loss : 0.0254620 | Val. Fail : 16
+Epoch : 184 | Train Loss : 1.9613972 | Val. Loss : 0.0354170 | Val. Fail : 17
+Epoch : 185 | Train Loss : 1.9598392 | Val. Loss : 0.0269665 | Val. Fail : 18
+Epoch : 186 | Train Loss : 1.9552937 | Val. Loss : 0.0339936 | Val. Fail : 19
+Epoch : 187 | Train Loss : 1.9500492 | Val. Loss : 0.0242231 | Val. Fail : 20
+Epoch : 188 | Train Loss : 1.9351392 | Val. Loss : 0.0300143 | Val. Fail : 21
+Epoch : 189 | Train Loss : 1.9357265 | Val. Loss : 0.0469117 | Val. Fail : 22
+Epoch : 190 | Train Loss : 1.9252406 | Val. Loss : 0.0258006 | Val. Fail : 23
+Epoch : 191 | Train Loss : 1.9245790 | Val. Loss : 0.0394138 | Val. Fail : 24
+Epoch : 192 | Train Loss : 1.9245944 | Val. Loss : 0.0376564 | Val. Fail : 25
+Epoch : 193 | Train Loss : 1.9155440 | Val. Loss : 0.0602566 | Val. Fail : 26
+Epoch : 194 | Train Loss : 1.9096756 | Val. Loss : 0.0342900 | Val. Fail : 27
+Epoch : 195 | Train Loss : 1.9068468 | Val. Loss : 0.0297333 | Val. Fail : 28
+Epoch : 196 | Train Loss : 1.9016401 | Val. Loss : 0.0223206 | Val. Fail : 29
+Epoch : 197 | Train Loss : 1.8946908 | Val. Loss : 0.0249516 | Val. Fail : 30
+Epoch : 198 | Train Loss : 1.8876412 | Val. Loss : 0.0275665 | Val. Fail : 31
+Epoch : 199 | Train Loss : 1.8845652 | Val. Loss : 0.0306517 | Val. Fail : 32
+Epoch : 200 | Train Loss : 1.8741330 | Val. Loss : 0.0431831 | Val. Fail : 33
+Epoch : 201 | Train Loss : 1.8723093 | Val. Loss : 0.0306882 | Val. Fail : 34
+Epoch : 202 | Train Loss : 1.8638917 | Val. Loss : 0.0674087 | Val. Fail : 35
+Epoch : 203 | Train Loss : 1.8636478 | Val. Loss : 0.0359068 | Val. Fail : 36
+Epoch : 204 | Train Loss : 1.8566315 | Val. Loss : 0.0390078 | Val. Fail : 37
+Epoch : 205 | Train Loss : 1.8533479 | Val. Loss : 0.0278009 | Val. Fail : 38
+Epoch : 206 | Train Loss : 1.8477525 | Val. Loss : 0.0244288 | Val. Fail : 39
+Epoch : 207 | Train Loss : 1.8450081 | Val. Loss : 0.0277958 | Val. Fail : 40
+
+Stopping Reason : Manual stop (Ctrl+C)
+Final Epoch = 207
+Final Validation Loss : 0.027795782312750816
+Best Validation Loss : 0.01947828195989132
