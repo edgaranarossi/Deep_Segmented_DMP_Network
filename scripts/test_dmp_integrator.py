@@ -15,7 +15,7 @@ PARAM_PKL_PATH = join(MODEL_PATH, 'train-model-dmp_param.pkl')
 
 FILE_NAME = 'dmp_parameter-traj_N_5000000_n-bf_20_ay_25.pkl'
 ext = FILE_NAME[-3:]
-FILE_DIR = 'scripts/generated'
+FILE_DIR = 'scripts/dataset'
 FILE_PATH = join(ROOT_DIR, FILE_DIR,  FILE_NAME)
 
 if __name__ == '__main__':

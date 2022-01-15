@@ -132,7 +132,7 @@ filename = 'dmp_parameter-traj' + \
            '_scale-pos_' + str(int(scale.y_new.max)) + \
            '_scale-w_' + str(int(scale.w_new.max)) + \
            '.pkl'
-filepath = join('generated', filename)
+filepath = join('dataset', filename)
 pkl.dump(dataset, open(filepath, 'wb'))
 print('\nGenerated', num_dataset, 'data')
 print('Saved in', filepath)

@@ -17,7 +17,7 @@ chdir(ROOT_DIR)
 
 FILE_NAME = 'dmp_parameter-traj_N_3000000_5x_random_points_3_cutting_traj_points_[2]_n-bf_15_ay_15_dt_0_scale-pos_1_scale-w_1.pkl'
 ext = FILE_NAME[-3:]
-FILE_DIR = 'scripts/generated'
+FILE_DIR = 'scripts/dataset'
 FILE_PATH = join(ROOT_DIR, FILE_DIR,  FILE_NAME)
 
 while FILE_NAME not in listdir(join(ROOT_DIR, FILE_DIR)):
