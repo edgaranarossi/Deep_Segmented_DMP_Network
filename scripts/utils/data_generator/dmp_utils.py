@@ -3,7 +3,8 @@ from pydmps.dmp_discrete import DMPs_discrete
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy.random import rand, randint
-from data_generator.utils import smooth
+from utils.data_generator.utils import smooth
+from utils.data_generator.utils import rotateCoordNp
 
 def generate_dmps(trajs, n_bf, ay, dt, segmented):
     if not segmented:
@@ -35,8 +36,8 @@ def plot_dmp_trajectory(dmps, segmented):
             dy_tracks.append(dy_track)
             ddy_tracks.append(ddy_track)
         y_tracks, dy_tracks, ddy_tracks = recombine_trajs(y_tracks, dy_tracks, ddy_tracks)
-    plt.plot(y_tracks[:, 0], y_tracks[:, 1], linewidth=2, color='w', ls=':')
-    # return y_tracks, dy_tracks, ddy_tracks
+    plt.scatter(y_tracks[:, 0], y_tracks[:, 1], linewidth=2, color='r', ls=':')
+    return y_tracks, dy_tracks, ddy_tracks
 
 def recombine_trajs(y, dy, ddy):
     combined_y = y[0]
@@ -132,3 +133,70 @@ def generate_random_dmp(max_points = 6,
     if plot_traj or plot_dmp: plt.show()
 
     return dmp_param, dmp_traj, traj, dmp
+
+def generate_random_rotated_curves_dmp(dmp_bf, dmp_ay, dmp_dt, scale, random_pos, w_limit, plot_traj):
+
+
+    within_limit = False
+
+    while not within_limit:
+        rot = randint(10, 16)
+        rotations = [i for i in range(0, 360, rot)]
+
+        length = scale/2 + (scale/2 * rand())
+        mid = rand() * length
+        height = rand() * length * 1
+        curve_points = [[0, 0], [mid, height], [length, 0]]
+        # curve = np.array(smooth(curve_points, 3))
+        curve = np.array(curve_points)
+        line = np.array([[0, 0], [length, 0]])
+        # plt.plot(curve[:, 0], curve[:, 1])
+        # plt.axis('equal')
+
+        center_curve = curve.min(axis = 0) + ((curve.max(axis = 0) - curve.min(axis = 0))/2)
+        center_line = line.min(axis = 0) + ((line.max(axis = 0) - line.min(axis = 0))/2)
+        trajs = []
+        for r in rotations:
+            rotated_curve = rotateCoordNp(curve, center_curve, r)
+            if random_pos: rotated_curve[:,0] = rotated_curve[:,0] + (rand() * scale * 1.5)
+            if random_pos: rotated_curve[:,1] = rotated_curve[:,1] + (rand() * scale * 1.5)
+            trajs.append(rotated_curve)
+            rotated_line = rotateCoordNp(line, center_line, r)
+            if random_pos: rotated_line[:,0] = rotated_line[:,0] + (rand() * scale * 1.5)
+            if random_pos: rotated_line[:,1] = rotated_line[:,1] + (rand() * scale * 1.5)
+            trajs.append(rotated_line)
+            # if plot_traj:
+                # plt.plot(rotated_curve[:, 0], rotated_curve[:, 1])
+                # plt.plot(rotated_line[:, 0], rotated_line[:, 1])
+                
+        dmps = generate_dmps(trajs, dmp_bf, dmp_ay, dmp_dt, segmented = True)
+
+        dmp_params = []
+        dmp_trajs = []
+
+        max_w = -1e6
+        min_w = 1e6
+        for dmp in dmps:
+            if dmp.w.max() > max_w: max_w = dmp.w.max()
+            if dmp.w.min() < min_w: min_w = dmp.w.min()
+            if min_w < w_limit[0] and max_w > w_limit[1]: break
+            dmp_param = dmp.y0
+            dmp_param = np.append(dmp_param, dmp.goal)
+            dmp_param = np.append(dmp_param, dmp.w)
+            dmp_params.append(dmp_param)
+            y_track, _, _ = dmp.rollout()
+            dmp_trajs.append(y_track.reshape(-1))
+            if plot_traj:
+                plt.plot(y_track[:, 0], y_track[:, 1])
+        
+        if min_w > w_limit[0] and max_w < w_limit[1]: 
+            within_limit = True
+            # print('success')
+        # else: 
+            # print(max_w)
+            # plt.plot(y_track[:, 0], y_track[:, 1])
+            # plt.show()
+
+    return dmp_params, dmp_trajs, trajs, dmps
+
+    

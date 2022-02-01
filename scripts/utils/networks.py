@@ -2,6 +2,8 @@ from torch import nn, flatten, clone, ones, zeros, tensor, exp, linspace, sum, s
 from torch.nn import ModuleList
 import torch.nn.functional as F
 import torch
+from pydmps.dmp_discrete import DMPs_discrete
+import numpy as np
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -87,10 +89,11 @@ class NewCNNDMPNet(nn.Module):
         raise NotImplementedError
 
 class SegmentedDMPNet(nn.Module):
-    def __init__(self, train_param):
+    def __init__(self, train_param, output_size, surrogate_model):
         super().__init__()
         self.train_param = train_param
         self.model_param = train_param.model_param
+        self.dmp_param = self.model_param.dmp_param
         self.tanh = torch.nn.Tanh().to(DEVICE)
 
         # Define convolution layers
@@ -100,14 +103,15 @@ class SegmentedDMPNet(nn.Module):
         # Get convolution layers output shape and add it to layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
-        layer_sizes = [conv_output_size] + self.model_param.layer_sizes
-        
+        layer_sizes = [conv_output_size] + self.model_param.layer_sizes + output_size
+        self.output_size = output_size
+        # print(layer_sizes)
         # Define fully-connected layers
         self.fc = ModuleList()
         for idx in range(len(layer_sizes[:-1])):
             self.fc.append(nn.Linear(layer_sizes[idx], layer_sizes[idx+1]).to(DEVICE))
 
-        self.surrogate_model = None
+        self.surrogate_model = surrogate_model
 
     def forwardConv(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2), inplace=False)
@@ -120,8 +124,12 @@ class SegmentedDMPNet(nn.Module):
         for fc in self.fc[:-1]:
             x = self.tanh(fc(x))
         output = self.fc[-1](x)
+        batch_size = output.shape[0]
+        output = output.reshape(-1, self.surrogate_model.layer_sizes[0])
+        # print(output.shape)
         # traj = self.integrateDMP(output)
-        traj = self.surrogate_model(output)
+        segment_traj = self.surrogate_model(output)
+        traj = segment_traj.reshape(batch_size, -1)
         # traj = clamp(traj, min = 0, max = 1)
         return traj
 
@@ -239,7 +247,7 @@ class DMPIntegratorNet(nn.Module):
     def __init__(self, train_param, input_size, output_size, layer_sizes):
         super().__init__()
         self.tanh = torch.nn.Tanh().to(DEVICE)
-        self.dropout = nn.Dropout(p=0.2)
+        self.dropout = nn.Dropout(p=0.5)
 
         self.train_param = train_param
         self.model_param = train_param.model_param
@@ -262,3 +270,276 @@ class DMPIntegratorNet(nn.Module):
             x = self.tanh(fc(x))
         output = self.fc[-1](self.dropout(x))
         return output
+
+class FixedSegmentDictDMPNet(nn.Module):
+    def __init__(self, train_param):
+        super().__init__()
+        self.train_param = train_param
+        self.model_param = train_param.model_param
+        self.dmp_param = self.model_param.dmp_param
+        self.max_segments = self.dmp_param.segments
+        self.traj_dict = self.dmp_param.traj_dict
+        
+        # self.dmp_traj = torch.from_numpy(self.dmp_traj).reshape(1, int(1/dmp_dt), 2).to(DEVICE)
+        self.dmp_traj_length = self.traj_dict.shape[1]
+        self.total_traj_length = self.traj_dict.shape[1] * self.max_segments
+
+        self.tanh = torch.nn.Tanh().to(DEVICE)
+
+        self.conv1_1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3).to(DEVICE)
+        self.conv1_2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3).to(DEVICE)
+        self.conv1_3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3).to(DEVICE)
+        self.conv1_4 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3).to(DEVICE)
+        # self.conv1_5 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3).to(DEVICE)
+
+        # self.conv2_1 = nn.Conv2d(in_channels=3, out_channels=128, kernel_size=50).to(DEVICE)
+        # self.conv2_2 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=15).to(DEVICE)
+        # self.conv2_3 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=5).to(DEVICE)
+
+        # self.conv3_1 = nn.Conv2d(in_channels=3, out_channels=256, kernel_size=100).to(DEVICE)
+        # self.conv3_2 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=10).to(DEVICE)
+
+        self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
+        self.layer_sizes = self.model_param.layer_sizes
+        _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
+        conv_output_size = self.forwardConv(_x).shape[1]
+        self.layer_sizes = [conv_output_size] + self.layer_sizes
+
+        # output size:
+        # init pos x, init pos y, 
+        # (traj_idx, mul_x, mul_y) * num_seg
+        output_size = 2 + \
+                      (3 * self.max_segments)
+        self.layer_sizes = self.layer_sizes + [output_size]
+        self.fc = ModuleList()
+        for idx in range(len(self.layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+
+    def forwardConv(self, x):
+        x1 = F.relu(F.max_pool2d(self.conv1_1(x), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_2(x1), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_3(x1), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_4(x1), 2), inplace=False)
+        # x1 = F.relu(F.max_pool2d(self.conv1_5(x1), 2), inplace=False)
+        x1 = flatten(x1, 1) # flatten all dimensions except batch
+
+        # x2 = F.relu(F.max_pool2d(self.conv2_1(x), 2), inplace=False)
+        # x2 = F.relu(F.max_pool2d(self.conv2_2(x2), 2), inplace=False)
+        # x2 = F.relu(F.max_pool2d(self.conv2_3(x2), 2), inplace=False)
+        # x2 = flatten(x2, 1) # flatten all dimensions except batch
+
+        # x3 = F.relu(F.max_pool2d(self.conv3_1(x), 2), inplace=False)
+        # x3 = F.relu(F.max_pool2d(self.conv3_2(x3), 2), inplace=False)
+        # x3 = flatten(x3, 1) # flatten all dimensions except batch
+
+        # x = torch.cat([x1, x2, x3], dim = 1)
+        # x = torch.cat([x1, x2], dim = 1)
+        x = x1
+        return x.cuda()
+
+    def forward(self, x):
+        x = self.forwardConv(x)
+        for fc in self.fc[:-1]:
+            x = self.tanh(fc(x))
+        x = self.fc[-1](self.dropout(x))
+        # x = self.fc[-1](x)
+        output = self.processDMPModifier(x)
+        # print(output.shape)
+        # return output, x
+        return [output]
+
+    def processDMPModifier(self, x):
+        # print(x.shape)
+        batch_s = x.shape[0]
+        traj = torch.zeros(batch_s, self.total_traj_length, 2).to(DEVICE)
+        last_pos = x[:, :2]
+        # print(last_pos.shape)
+        for i in range(self.max_segments):
+            cur_traj = self.getTrajFromDict(x[:, 2+(3*i)])
+            x_mod = cur_traj[:,:,0] * x[:, 2+(3*i)+1].reshape(-1, 1)
+            y_mod = cur_traj[:,:,1] * x[:, 2+(3*i)+2].reshape(-1, 1)
+            x_mod = x_mod + last_pos[:, 0].reshape(-1, 1)
+            y_mod = y_mod + last_pos[:, 1].reshape(-1, 1)
+            last_pos = torch.cat([x_mod[:,-1].reshape(-1,1), y_mod[:,-1].reshape(-1,1)], dim = 1)
+            traj[:, (self.dmp_traj_length*i):(self.dmp_traj_length*i)+self.dmp_traj_length, 0] = x_mod
+            traj[:, (self.dmp_traj_length*i):(self.dmp_traj_length*i)+self.dmp_traj_length, 1] = y_mod
+        return traj
+
+    def getTrajFromDict(self, x):
+        batch_s = x.shape[0]
+        traj_dict = torch.zeros(batch_s, self.traj_dict.shape[1], self.traj_dict.shape[2]).to(DEVICE)
+        # print(traj_dict.shape)
+        for i in range(self.traj_dict.shape[0]):
+            multiplier = torch.tensor(i).to(DEVICE) - torch.clamp(torch.round(x), min = 0, max = self.traj_dict.shape[0] - 1)
+            multiplier = torch.abs(torch.abs(torch.sign(multiplier)) - torch.tensor(1).to(DEVICE))
+            traj_dict = traj_dict + (torch.tile(self.traj_dict[i].reshape(1, self.traj_dict.shape[1], self.traj_dict.shape[2]), (batch_s, 1, 1)) * multiplier.reshape(batch_s, 1, 1))
+        # print(traj_dict.shape)
+        return traj_dict
+
+class DynamicSegmentDictDMPNet(nn.Module):
+    def __init__(self, train_param):
+        super().__init__()
+        self.train_param = train_param
+        self.model_param = train_param.model_param
+        self.dmp_param = self.model_param.dmp_param
+        self.max_segments = self.dmp_param.segments
+        self.traj_dict = self.dmp_param.traj_dict
+
+        # self.dmp_traj = torch.from_numpy(self.dmp_traj).reshape(1, int(1/dict_dt), 2).to(DEVICE)
+        self.dmp_traj_length = self.traj_dict.shape[1]
+        self.total_traj_length = self.traj_dict.shape[1] * self.max_segments
+
+        self.tanh = torch.nn.Tanh().to(DEVICE)
+        # self.relu = nn.ReLU()
+
+        self.conv1_1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3).to(DEVICE)
+        self.conv1_2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3).to(DEVICE)
+        self.conv1_3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3).to(DEVICE)
+        self.conv1_4 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3).to(DEVICE)
+
+        self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
+        self.layer_sizes = self.model_param.layer_sizes
+        _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
+        conv_output_size = self.forwardConv(_x).shape[1]
+        self.layer_sizes = [conv_output_size] + self.layer_sizes
+
+        # output size:
+        # num_seg, 
+        # init pos x, init pos y, 
+        # (traj_idx, mul_x, mul_y) * num_seg
+        output_size = 1 + \
+                      2 + \
+                     (1 + 1 + 1) * self.max_segments 
+        self.layer_sizes = self.layer_sizes + [output_size]
+        self.fc = ModuleList()
+        for idx in range(len(self.layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+            
+    def forwardConv(self, x):
+        x1 = F.relu(F.max_pool2d(self.conv1_1(x), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_2(x1), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_3(x1), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_4(x1), 2), inplace=False)
+        # x1 = F.relu(F.max_pool2d(self.conv1_5(x1), 2), inplace=False)
+        x1 = flatten(x1, 1) # flatten all dimensions except batch
+
+        # x2 = F.relu(F.max_pool2d(self.conv2_1(x), 2), inplace=False)
+        # x2 = F.relu(F.max_pool2d(self.conv2_2(x2), 2), inplace=False)
+        # x2 = F.relu(F.max_pool2d(self.conv2_3(x2), 2), inplace=False)
+        # x2 = flatten(x2, 1) # flatten all dimensions except batch
+
+        # x3 = F.relu(F.max_pool2d(self.conv3_1(x), 2), inplace=False)
+        # x3 = F.relu(F.max_pool2d(self.conv3_2(x3), 2), inplace=False)
+        # x3 = flatten(x3, 1) # flatten all dimensions except batch
+
+        # x = torch.cat([x1, x2, x3], dim = 1)
+        x = x1
+        return x.cuda()
+    
+    def forward(self, x):
+        print(x.type())
+        if x.type() == dict:
+            x = self.forwardConv(x['image'])
+        else:
+            x = self.forwardConv(x)
+
+        for fc in self.fc[:-1]:
+            x = self.tanh(fc(x))
+        x = self.fc[-1](self.dropout(x))
+        # x = self.fc[-1](x)
+        traj, points, segment_num, segment_types = self.processDMPModifier(x)
+        # return traj, x, points, segment_num.reshape(-1, 1)
+        return [points, segment_num, segment_types]
+    
+    def processDMPModifier(self, x):
+        batch_s = x.shape[0]
+        num_seg = x[:, 0] * self.max_segments
+        segment_num = torch.round(torch.clamp(num_seg, min = 1, max = self.max_segments))
+        points = x[:, 1:3].float().reshape(batch_s, 1, -1)
+        traj = torch.zeros(batch_s, self.total_traj_length, 2).to(DEVICE)
+        last_pos = x[:, 1:3]
+        segment_types = None
+        for i in range(self.max_segments):
+            multiplier = torch.clamp(torch.sign(segment_num - i), min = 0, max = 1).reshape(-1, 1)
+            # neg_multiplier = -(multiplier - 1)
+            cur_traj = self.getTrajFromDict(x[:, 3+(3*i)])
+            if segment_types == None:
+                segment_types = x[:, 3+(3*i)].reshape(-1, 1)
+            else:
+                segment_types = torch.cat([segment_types, x[:, 3+(3*i)].reshape(-1, 1)], dim = 1)
+
+            x_mod = cur_traj[:,:,0] * x[:, 3+(3*i)+1].reshape(-1, 1)
+            y_mod = cur_traj[:,:,1] * x[:, 3+(3*i)+2].reshape(-1, 1)
+            x_mod = x_mod * multiplier + last_pos[:, 0].reshape(-1, 1)
+            y_mod = y_mod * multiplier + last_pos[:, 1].reshape(-1, 1)
+            last_pos = torch.cat([x_mod[:,-1].reshape(-1,1), y_mod[:,-1].reshape(-1,1)], dim = 1)
+            points = torch.cat((points, last_pos.reshape(batch_s, 1, -1).float()), dim = 1)
+            traj[:, (self.dmp_traj_length*i):(self.dmp_traj_length*i)+self.dmp_traj_length, 0] = x_mod
+            traj[:, (self.dmp_traj_length*i):(self.dmp_traj_length*i)+self.dmp_traj_length, 1] = y_mod
+    
+        return traj, points, num_seg.reshape(batch_s, 1), segment_types
+
+    def getTrajFromDict(self, x):
+        batch_s = x.shape[0]
+        traj_dict = torch.zeros(batch_s, self.traj_dict.shape[1], self.traj_dict.shape[2]).to(DEVICE)
+        # print(traj_dict.shape)
+        for i in range(self.traj_dict.shape[0]):
+            multiplier = torch.tensor(i).to(DEVICE) - torch.clamp(torch.round(x), min = 0, max = self.traj_dict.shape[0] - 1)
+            multiplier = torch.abs(torch.abs(torch.sign(multiplier)) - torch.tensor(1).to(DEVICE))
+            traj_dict = traj_dict + (torch.tile(self.traj_dict[i].reshape(1, self.traj_dict.shape[1], self.traj_dict.shape[2]), (batch_s, 1, 1)) * multiplier.reshape(batch_s, 1, 1))
+        # print(traj_dict.shape)
+        return traj_dict
+
+class SegmentNumCNN(nn.Module):
+    def __init__(self, train_param):
+        super().__init__()
+        self.train_param = train_param
+        self.model_param = train_param.model_param
+        self.dmp_param = self.model_param.dmp_param
+        self.max_segments = self.dmp_param.segments
+        self.traj_dict = self.dmp_param.traj_dict
+
+        self.dmp_traj_length = self.traj_dict.shape[1]
+        self.total_traj_length = self.traj_dict.shape[1] * self.max_segments
+
+        self.tanh = torch.nn.Tanh().to(DEVICE)
+        # self.relu = nn.ReLU()
+
+        self.conv1_1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3).to(DEVICE)
+        self.conv1_2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3).to(DEVICE)
+        self.conv1_3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3).to(DEVICE)
+        self.conv1_4 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3).to(DEVICE)
+
+        self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
+
+        _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
+        conv_output_size = self.forwardConv(_x).shape[1]
+
+        self.layer_sizes = self.model_param.layer_sizes
+        self.layer_sizes = [conv_output_size] + self.layer_sizes
+
+        output_size = 1
+        self.layer_sizes = self.layer_sizes + [output_size]
+        self.fc = ModuleList()
+        for idx in range(len(self.layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+
+    def forwardConv(self, x):
+        x1 = F.relu(F.max_pool2d(self.conv1_1(x), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_2(x1), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_3(x1), 2), inplace=False)
+        x1 = F.relu(F.max_pool2d(self.conv1_4(x1), 2), inplace=False)
+        x1 = flatten(x1, 1) # flatten all dimensions except batch
+        x = x1
+        return x.cuda()
+
+    def forward(self, x):
+        x = self.forwardConv(x['image'])
+        for fc in self.fc[:-1]:
+            x = self.tanh(fc(x))
+        x = self.fc[-1](self.dropout(x))
+        # x = self.fc[-1](x)
+        x = x * self.max_segments
+        # traj, points, segment_num, segment_types = self.processDMPModifier(x)
+        # return traj, x, points, segment_num.reshape(-1, 1)
+        return [x]

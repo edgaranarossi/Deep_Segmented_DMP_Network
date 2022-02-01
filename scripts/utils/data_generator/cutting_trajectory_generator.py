@@ -1,6 +1,6 @@
 import numpy as np
-from numpy import cos,sin,deg2rad,pi
 from matplotlib import pyplot as plt
+from utils.data_generator.utils.transformations import rotateCoordList
 
 def plot_trajectory(traj):
     traj_x = [tr[0] for tr in traj['subdivided']]
@@ -90,29 +90,21 @@ def closestValueMaxHeight(roof, traj_x):
     max_height = roof[idx_further, 1] if np.abs(roof[idx_further, 0] - traj_x) < np.abs(roof[idx_further - 1, 0] - traj_x) else roof[idx_further - 1, 1]
     return max_height
 
-def rotateCoord(point, center, orientation):
-    px, py = point
-    cx, cy = center
-    new_x = cos(deg2rad(orientation)) * (px-cx) - sin(deg2rad(orientation)) * (py-cy) + cx
-    new_y = sin(deg2rad(orientation)) * (px-cx) + cos(deg2rad(orientation)) * (py-cy) + cy
-    # print(new_x, new_y)
-    return new_x, new_y
-
 def getOffset(orientation):
     diff_limit = 1e-4
     step = 1e-4
     multiplier = 0
     test_center = (1, 1)
     if orientation < 0:
-        while rotateCoord(((1 + multiplier * step), 0), test_center, orientation)[1] > diff_limit:
+        while rotateCoordList(((1 + multiplier * step), 0), test_center, orientation)[1] > diff_limit:
             multiplier += 1
     elif orientation > 0:
-        while rotateCoord(((1 + multiplier * step), 0), test_center, orientation)[1] > diff_limit:
+        while rotateCoordList(((1 + multiplier * step), 0), test_center, orientation)[1] > diff_limit:
             multiplier -= 1
     else:
         return (1, 0)
         
-    displacement = rotateCoord(((1 + multiplier * step), 0), test_center, orientation)[0]
+    displacement = rotateCoordList(((1 + multiplier * step), 0), test_center, orientation)[0]
     return 1 + multiplier * step, displacement
 
 def euclideanDistance(p1, p2):
@@ -123,8 +115,9 @@ def calculateAngle(p1, p2):
     y = p2[1] - p1[1]
     return np.arctan2(y, x)
 
-def subDivideTraj(traj, traj_length, cut_number):
+def subDivideTraj(traj, traj_length):
     # print(len(traj))
+    assert traj.shape[0] < traj_length, "Target number of points less than original number of points"
     total_length = 0
     for idx_p, p in enumerate(traj[:-1]):
         total_length += euclideanDistance(p, traj[idx_p+1])
@@ -138,7 +131,7 @@ def subDivideTraj(traj, traj_length, cut_number):
         edge_distance = euclideanDistance(p, traj[idx_p+1])
         edge_distances.append([edge_distance, idx_p])
     # edge_distances = sorted(edge_distances, key=lambda i: i[0])
-    sorted_edge_distance = np.array(edge_distances)[::-1] #[:((cut_number * 2) - 1)]
+    sorted_edge_distance = np.array(edge_distances)[::-1]
     edge_cuts = np.zeros_like(sorted_edge_distance[:,0], dtype = 'int32')
     remaining_points = traj_length - len(traj)
     # need = traj_length - len(traj)
@@ -180,4 +173,4 @@ def subDivideTraj(traj, traj_length, cut_number):
     subdivided_traj_np = np.array(subdivided_traj)
     # print(len(traj), subdivided_traj_np.shape)
     # plt.scatter(subdivided_traj_np[:,0], subdivided_traj_np[:,1])
-    return subdivided_traj
+    return subdivided_traj_np

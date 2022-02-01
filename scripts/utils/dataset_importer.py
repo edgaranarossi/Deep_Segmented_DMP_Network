@@ -1,9 +1,6 @@
 from __future__ import print_function, division
-from torch._C import Value
 from torch.utils.data import Dataset, DataLoader
-from torch import tensor, from_numpy
 import torch
-import scipy.io as sio
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pickle
@@ -11,12 +8,6 @@ import sys
 sys.path.append('/home/edgar/rllab/tools/DMP/imednet')
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-class Mapping:
-    y_max = 1
-    y_min = -1
-    x_max = []
-    x_min = []
 
 class MinMax:
     def __init__(self, min, max):
@@ -56,107 +47,75 @@ class Scale:
                                 self.w_old.min
         return X_denormalized
 
-class MatDataLoader:
-    def __init__(self, mat_path, data_limit = None, include_tau = False):
-        data                            = sio.loadmat(mat_path)
-
-        if data_limit is None:
-            self.images                 = data['imageArray']
-            self.dmp_outputs            = data['outputs']
-            self.traj                   = data['trajArray']
-            self.captions               = data['caption']
-        else:
-            self.images                 = data['imageArray'][:data_limit]
-            self.dmp_outputs            = data['outputs'][:data_limit]
-            self.traj                   = data['trajArray'][:data_limit]
-            self.captions               = data['text'][:data_limit]
-
-        self.dmp_scaling                = Mapping()
-        self.dmp_scaling.x_max          = data['scaling']['x_max'][0,0][0]
-        self.dmp_scaling.x_min          = data['scaling']['x_min'][0,0][0]
-        self.dmp_scaling.y_max          = data['scaling']['y_max'][0,0][0,0]
-        self.dmp_scaling.y_min          = data['scaling']['y_min'][0,0][0,0]
-
-        self.combined_inputs            = []
-        self.combined_outputs           = []
-        if include_tau:
-            begin_idx = None
-        else:
-            begin_idx = 1
-        self.tau = self.dmp_outputs[0][0]
-        for idx in range(len(self.images)):
-            self.combined_inputs.append({
-                'image'                 : torch.from_numpy(self.images[idx]).float().to(DEVICE),
-                'caption'               : self.captions[idx],
-            })
-            self.combined_outputs.append({
-                'outputs'               : torch.from_numpy(self.dmp_outputs[idx][begin_idx:]).float().to(DEVICE),
-                'trajectory'            : torch.from_numpy(self.traj[idx]).float().to(DEVICE),
-            })
-
-    def getData(self):
-        return self.combined_inputs, self.combined_outputs
-
-    def getTau(self):
-        return self.tau
-
-    def getDataLoader(self, data_ratio = [7, 2, 1], batch_size = 50, input_mode = 'image',output_mode = 'dmp'):
-        X_train, X_val, Y_train, Y_val  = train_test_split(
-                                                        self.combined_inputs,
-                                                        self.combined_outputs,
-                                                        test_size=(data_ratio[1]+data_ratio[2])/sum(data_ratio))
-        X_val, X_test, Y_val, Y_test    = train_test_split(
-                                                        X_val,
-                                                        Y_val, 
-                                                        test_size=data_ratio[2]/(data_ratio[1]+data_ratio[2]))
-
-        train_dataset                   = DMPDataset(X = X_train, Y = Y_train, input_mode = input_mode, output_mode = output_mode)
-        val_dataset                     = DMPDataset(X = X_val, Y = Y_val, input_mode = input_mode, output_mode = output_mode)
-        test_dataset                    = DMPDataset(X = X_test, Y = Y_test, input_mode = input_mode, output_mode = output_mode)
-
-        train_loader                    = DataLoader(dataset = train_dataset, batch_size=batch_size, shuffle = True)
-        val_loader                      = DataLoader(dataset = val_dataset, batch_size=batch_size, shuffle = True)
-        test_loader                     = DataLoader(dataset = test_dataset, batch_size=batch_size, shuffle = True)
-
-        return [train_loader, val_loader, test_loader], self.dmp_scaling
-
 class PickleDataLoader:
     def __init__(self, pkl_path, data_limit = None, include_tau = False):
         begin_idx                           = 1 if include_tau else None
         self.data                           = pickle.load(open(pkl_path, 'rb'))
+        data_length                         = None
+        self.with_scaling                   = False
 
         if 'dmp_outputs_unscaled' in self.data:
-            self.dmp_outputs                = self.data['dmp_outputs_unscaled'][:data_limit, begin_idx:]
-            self.tau                        = self.dmp_outputs[0][0] if include_tau else 1
+            print('dmp_outputs_unscaled')
+            self.dmp_outputs                    = self.data['dmp_outputs_unscaled'][:data_limit, begin_idx:]
+            self.tau                            = self.dmp_outputs[0][0] if include_tau else 1
+            if data_length == None: data_length = len(self.dmp_outputs)
         if 'dmp_outputs_scaled' in self.data:
-            self.dmp_outputs_scaled         = self.data['dmp_outputs_scaled'][:data_limit, begin_idx:]
-            self.tau                        = self.dmp_outputs_scaled[0][0] if include_tau else 1
+            self.dmp_outputs_scaled             = self.data['dmp_outputs_scaled'][:data_limit, begin_idx:]
+            self.tau                            = self.dmp_outputs_scaled[0][0] if include_tau else 1
+            if data_length == None: data_length = len(self.dmp_outputs_scaled)
         if 'segmented_dmp_outputs_unscaled' in self.data:
-            self.segment_dmp_outputs        = self.data['segmented_dmp_outputs_unscaled'][:data_limit, begin_idx:]
+            self.segment_dmp_outputs            = self.data['segmented_dmp_outputs_unscaled'][:data_limit, begin_idx:]
+            if data_length == None: data_length = len(self.segment_dmp_outputs)
         if 'segmented_dmp_outputs_scaled' in self.data:
-            self.segment_dmp_outputs_scaled = self.data['segmented_dmp_outputs_scaled'][:data_limit, begin_idx:]
+            self.segment_dmp_outputs_scaled     = self.data['segmented_dmp_outputs_scaled'][:data_limit, begin_idx:]
+            if data_length == None: data_length = len(self.segment_dmp_outputs_scaled)
 
+        if 'segmented_dict_dmp_outputs' in self.data:
+            self.segmented_dict_dmp_outputs     = self.data['segmented_dict_dmp_outputs'][:data_limit]
+            if data_length == None: data_length = len(self.segmented_dict_dmp_outputs)
+        if 'segmented_dict_dmp_types' in self.data:
+            self.segmented_dict_dmp_types       = self.data['segmented_dict_dmp_types'][:data_limit]
+            if data_length == None: data_length = len(self.segmented_dict_dmp_types)
         if 'image' in self.data:
-            self.images                     = self.data['image'][:data_limit]
+            self.images                         = self.data['image'][:data_limit] / 255
+            if data_length == None: data_length = len(self.images)
+        if 'image_name' in self.data:
+            self.image_names                    = self.data['image_name'][:data_limit]
+            if data_length == None: data_length = len(self.image_names)
         if 'caption' in self.data:
-            self.captions                   = self.data['caption'][:data_limit]
+            self.captions                       = self.data['caption'][:data_limit]
+            if data_length == None: data_length = len(self.captions)
         if 'cut_distance' in self.data:
-            self.cut_distance               = self.data['cut_distance'][:data_limit]
-        if 'segmented_dmp_segments' in self.data:
-            self.segments                   = self.data['segmented_dmp_segments']
+            self.cut_distance                   = self.data['cut_distance'][:data_limit]
+            if data_length == None: data_length = len(self.cut_distance)
+        if 'num_segments' in self.data:
+            self.num_segments                   = np.array(self.data['num_segments']).reshape(-1, 1)
+            # print(self.num_segments.shape)
+            if data_length == None: data_length = len(self.num_segments)
         if 'traj' in self.data:
-            self.traj                       = self.data['traj'][:data_limit]
+            self.traj                           = self.data['traj'][:data_limit] * 100
+            if data_length == None: data_length = len(self.traj)
         if 'dmp_traj' in self.data:
             self.dmp_traj                       = self.data['dmp_traj'][:data_limit]
+            if data_length == None: data_length = len(self.dmp_traj)
+        if 'dmp_traj_padded' in self.data:
+            self.dmp_traj_padded                = self.data['dmp_traj_padded'][:data_limit]
+            if data_length == None: data_length = len(self.dmp_traj_padded)
+        if 'dmp_traj_interpolated' in self.data:
+            self.dmp_traj_interpolated          = self.data['dmp_traj_interpolated'][:data_limit]
+            if data_length == None: data_length = len(self.dmp_traj_interpolated)
         if 'segmented_dmp_traj' in self.data:
-            self.segmented_dmp_traj         = self.data['segmented_dmp_traj'][:data_limit]
+            self.segmented_dmp_traj             = self.data['segmented_dmp_traj'][:data_limit]
+            if data_length == None: data_length = len(self.segmented_dmp_traj)
 
         if 'dmp_scaling' in self.data:
             self.dmp_scaling                = self.data['dmp_scaling']
+            self.with_scaling               = True
             # self.dmp_scaling[0]             = self.dmp_scaling[0][begin_idx:]
             # self.dmp_scaling[1]             = self.dmp_scaling[1][begin_idx:]
         if 'segmented_dmp_scaling' in self.data:
             self.segmented_dmp_scaling      = self.data['segmented_dmp_scaling']
+            self.with_scaling               = True
             # self.segmented_dmp_scaling[0]   = self.segmented_dmp_scaling[0][begin_idx:]
             # self.segmented_dmp_scaling[1]   = self.segmented_dmp_scaling[1][begin_idx:]
 
@@ -168,7 +127,7 @@ class PickleDataLoader:
         self.combined_inputs            = []
         self.combined_outputs           = []
         
-        for idx in range(len(self.dmp_outputs)):
+        for idx in range(data_length):
             inputs = {}
             if 'image' in self.data:
                 inputs['image']                         = torch.from_numpy(self.images[idx]).float().to(DEVICE)
@@ -193,10 +152,21 @@ class PickleDataLoader:
                 outputs['segmented_dmp_param']          = torch.from_numpy(self.segment_dmp_outputs[idx][begin_idx:]).float().to(DEVICE)
             if 'segmented_dmp_outputs_scaled' in self.data:
                 outputs['segmented_dmp_param_scaled']   = torch.from_numpy(self.segment_dmp_outputs_scaled[idx][begin_idx:]).float().to(DEVICE)
+            
+            if 'segmented_dict_dmp_outputs' in self.data:
+                outputs['segmented_dict_dmp_outputs']   = torch.from_numpy(self.segmented_dict_dmp_outputs[idx]).float().to(DEVICE)
+            if 'segmented_dict_dmp_types' in self.data:
+                outputs['segmented_dict_dmp_types']     = torch.from_numpy(self.segmented_dict_dmp_types[idx]).float().to(DEVICE)
+            if 'num_segments' in self.data:
+                outputs['num_segments']                 = torch.from_numpy(self.num_segments[idx]).float().to(DEVICE)
             if 'traj' in self.data:
                 outputs['traj']                         = torch.from_numpy(self.traj[idx]).float().to(DEVICE)
             if 'dmp_traj' in self.data:
-                outputs['dmp_traj']                         = torch.from_numpy(self.dmp_traj[idx]).float().to(DEVICE)
+                outputs['dmp_traj']                     = torch.from_numpy(self.dmp_traj[idx]).float().to(DEVICE)
+            if 'dmp_traj_padded' in self.data:
+                outputs['dmp_traj_padded']              = torch.from_numpy(self.dmp_traj_padded[idx]).float().to(DEVICE)
+            if 'dmp_traj_interpolated' in self.data:
+                outputs['dmp_traj_interpolated']        = torch.from_numpy(self.dmp_traj_interpolated[idx]).float().to(DEVICE)
             if 'segmented_dmp_traj' in self.data:
                 outputs['segmented_dmp_traj']           = torch.from_numpy(self.segmented_dmp_traj[idx]).float().to(DEVICE)
             self.combined_outputs.append(outputs)
@@ -207,22 +177,8 @@ class PickleDataLoader:
     def getTau(self):
         return self.tau
 
-    def getDataLoader(self, input_mode, output_mode, data_ratio = [7, 2, 1], batch_size = 50):
-        """
-        Input mode = ['image',
-                      'caption',
-                      'dmp_param',
-                      'dmp_param_scaled',
-                      'segmented_dmp_param',
-                      'segmented_dmp_param_scaled']
-        Output mode = ['dmp_param',
-                       'dmp_param_scaled',
-                       'segmented_dmp_param',
-                       'segmented_dmp_param_scaled',
-                       'traj',
-                       'dmp_traj',
-                       'segmented_dmp_traj']
-        """
+    def getDataLoader(self, data_ratio = [7, 2, 1], batch_size = 50):
+        
         X_train, X_val, Y_train, Y_val  = train_test_split(
                                                         self.combined_inputs,
                                                         self.combined_outputs,
@@ -232,65 +188,35 @@ class PickleDataLoader:
                                                         Y_val, 
                                                         test_size=data_ratio[2]/(data_ratio[1]+data_ratio[2]))
 
-        train_dataset                   = DMPDataset(X = X_train, Y = Y_train, input_mode = input_mode, output_mode = output_mode)
-        val_dataset                     = DMPDataset(X = X_val, Y = Y_val, input_mode = input_mode, output_mode = output_mode)
-        test_dataset                    = DMPDataset(X = X_test, Y = Y_test, input_mode = input_mode, output_mode = output_mode)
+        train_dataset                   = DMPDataset(X = X_train, Y = Y_train)
+        val_dataset                     = DMPDataset(X = X_val, Y = Y_val)
+        test_dataset                    = DMPDataset(X = X_test, Y = Y_test)
 
         train_loader                    = DataLoader(dataset = train_dataset, batch_size = batch_size, shuffle = True)
         val_loader                      = DataLoader(dataset = val_dataset, batch_size = batch_size, shuffle = True)
         test_loader                     = DataLoader(dataset = test_dataset, batch_size = batch_size, shuffle = True)
 
-        if 'segmented' in output_mode:
+        if self.with_scaling:
             if 'segmented_dmp_scaling' in self.data:
                 scaling = self.segmented_dmp_scaling
-        else:
-            if 'dmp_scaling' in self.data:
+            elif 'dmp_scaling' in self.data:
                 scaling = self.dmp_scaling
-
-        if 'segmented_dmp_scaling' in self.data or 'dmp_scaling' in self.data:
-            return [train_loader, val_loader, test_loader], scaling
         else:
-            return [train_loader, val_loader, test_loader], ''
+            scaling = None
+
+        return [train_loader, val_loader, test_loader], scaling
     
 class DMPDataset(Dataset):
-    def __init__(self, X, input_mode, output_mode, Y = None):
+    def __init__(self, X, Y = None):
         self.X                          = X
         self.Y                          = Y
-        self.input_mode                 = input_mode
-        self.output_mode                = output_mode
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
-        if self.input_mode == 'image':
-            X                           = self.X[idx]['image']
-        elif self.input_mode == 'caption':
-            X                           = self.X[idx]['caption']
-        elif self.input_mode == 'dmp_param':
-            X                           = self.X[idx]['dmp_param']
-        elif self.input_mode == 'dmp_param_scaled':
-            X                           = self.X[idx]['dmp_param_scaled']
-        elif self.input_mode == 'segmented_dmp_param':
-            X                           = self.X[idx]['segmented_dmp_param']
-        elif self.input_mode == 'segmented_dmp_param_scaled':
-            X                           = self.X[idx]['segmented_dmp_param_scaled']
-
-        if self.Y != None:
-            if self.output_mode == 'dmp_param':
-                Y                       = self.Y[idx]['dmp_param']
-            elif self.output_mode == 'dmp_param_scaled':
-                Y                       = self.Y[idx]['dmp_param_scaled']
-            elif self.output_mode == 'segmented_dmp_param':
-                Y                       = self.Y[idx]['segmented_dmp_param']
-            elif self.output_mode == 'segmented_dmp_param_scaled':
-                Y                       = self.Y[idx]['segmented_dmp_param_scaled']
-            elif self.output_mode == 'traj':
-                Y                       = self.Y[idx]['traj']
-            elif self.output_mode == 'dmp_traj':
-                Y                       = self.Y[idx]['dmp_traj']
-            elif self.output_mode == 'segmented_dmp_traj':
-                Y                       = self.Y[idx]['segmented_dmp_traj']
-            return (X, Y)
-        
-        return X
+        inputs = self.X[idx]
+        if self.Y != None: 
+            labels = self.Y[idx]
+            return (inputs, labels)
+        return inputs

@@ -94,10 +94,10 @@ class ModelParameters:
         if self.dmp_param.segments == None:
             self.layer_sizes = self.layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
         elif self.dmp_param.segments > 0:
-            self.num_segment_points = self.dmp_param.segments + 1
-            self.num_segment_weights = self.dmp_param.segments
-            self.len_segment_points = self.num_segment_points * self.dmp_param.dof
-            self.len_segment_weights = self.num_segment_weights * self.dmp_param.dof * self.dmp_param.n_bf
+            self.max_segmentsment_points = self.dmp_param.segments + 1
+            self.max_segmentsment_weights = self.dmp_param.segments
+            self.len_segment_points = self.max_segmentsment_points * self.dmp_param.dof
+            self.len_segment_weights = self.max_segmentsment_weights * self.dmp_param.dof * self.dmp_param.n_bf
             self.layer_sizes = self.layer_sizes +\
                                 [(1 if self.dmp_param.tau == None else 0) +\
                                 self.len_segment_points +\

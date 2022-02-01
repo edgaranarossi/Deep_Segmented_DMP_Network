@@ -1,4 +1,4 @@
-from data_generator.utils import smooth
+from utils.data_generator.utils import smooth
 import numpy as np
 from numpy.random import rand, randint
 from PIL import Image

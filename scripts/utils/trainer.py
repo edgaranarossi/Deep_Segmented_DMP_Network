@@ -18,27 +18,32 @@ class Trainer:
     def __init__(self, model : torch.nn.Module, train_param, save_path = None, log_writer_path = None, writer = None):
         self.model = model
         self.train_param = train_param
+        self.model_param = self.train_param.model_param
+        self.output_mode = self.model_param.output_mode
         self.save_path = save_path
         self.LOG_WRITER_PATH = log_writer_path
         self.writer = writer
         self.epoch = 0
         
-        if self.train_param.loss_type == 'MSE':
-            self.loss_fn = torch.nn.MSELoss()
-        elif self.train_param.loss_type == 'SDTW':
-            self.loss_fn = SoftDTW(use_cuda=True, gamma=0.1)
+        self.loss_fns = []
+        for loss_type in self.train_param.loss_type:
+            if loss_type == 'MSE':
+                self.loss_fns.append(torch.nn.MSELoss())
+            elif loss_type == 'SDTW':
+                self.loss_fns.append(SoftDTW(use_cuda=True, gamma=train_param.sdtw_gamma))
 
         if self.train_param.optimizer_type == 'adam':
             self.optimizer = torch.optim.Adam(self.model.parameters(), 
                                               lr = self.train_param.learning_rate, 
                                               weight_decay = self.train_param.weight_decay if self.train_param.weight_decay != None else 0, 
-                                              eps = self.train_param.eps if self.train_param.eps != None else 1e-08)
+                                              eps = self.train_param.eps if self.train_param.eps != None else 1e-08,
+                                              amsgrad = 0)
 
     def train(self, data_loaders : List[torch.utils.data.DataLoader]):
         train_loaders = data_loaders[0]
         val_loaders = data_loaders[1]
 
-        self.writeLog('Loss Function : ' + str(self.loss_fn))
+        self.writeLog('Loss Function : ' + str(self.loss_fns))
         self.writeLog('Optimizer : ' + str(self.optimizer))
 
         _, val_losses = self.getLosses(val_loaders, train = False)
@@ -123,16 +128,20 @@ class Trainer:
             self.model.train()
             for _, (data, outputs) in enumerate(data_loader):
                 self.optimizer.zero_grad()
-                outputs = outputs.squeeze(axis=1)
-                preds = self.model(data).squeeze()
-                # preds = clamp(preds, min=0, max = 250)
-                loss = self.loss_fn(preds, outputs).mean()
-                batch_loss = mean(loss).to(DEVICE)
-                # print('Epoch', self.epoch, 'batch loss :',loss)
-                loss.backward()
+
+                preds = self.model(data)
+                
+                total_loss = torch.tensor(0.).to(DEVICE)
+                for i in range(len(self.output_mode)):
+                    loss_fn = self.loss_fns[i]
+                    loss = loss_fn(preds[i], outputs[self.output_mode[i]])
+                    if len(loss.shape) > 0:
+                        loss = loss.mean()
+                    total_loss = total_loss + loss
+
+                total_loss.backward()
                 self.optimizer.step()
-                losses.append(batch_loss)
-                # epoch_loss = epoch_loss + batch_loss
+                losses.append(total_loss)
                 predictions.append(preds)
             self.epoch += 1
             losses = tensor(losses).to(DEVICE)
@@ -141,22 +150,33 @@ class Trainer:
             with torch.no_grad():
                 for _, (data, outputs) in enumerate(data_loader):
                     self.optimizer.zero_grad()
-                    outputs = outputs.squeeze(axis=1)
-                    preds = self.model(data).squeeze()
+
+                    preds = self.model(data)
+
                     if plot_comparison_idx != None:
-                        if first_pred == None: first_pred = preds[plot_comparison_idx]
-                        if first_label == None: first_label = outputs[plot_comparison_idx]
-                    # preds = clamp(preds, min=-50, max = 50)
-                    # print(preds.shape, outputs.shape)
-                    loss = self.loss_fn(preds, outputs)
-                    batch_loss = mean(loss).to(DEVICE)
-                    losses.append(batch_loss)
-                    # epoch_loss = epoch_loss + batch_loss
+                        if first_pred == None: first_pred = preds[0][plot_comparison_idx]
+                        if first_label == None: first_label = outputs[self.output_mode[0]][plot_comparison_idx]
+                        
+                    total_loss = torch.tensor(0.).to(DEVICE)
+                    for i in range(len(self.output_mode)):
+                        loss_fn = self.loss_fns[i]
+                        loss = loss_fn(preds[i], outputs[self.output_mode[i]])
+                        if len(loss.shape) > 0:
+                            loss = loss.mean()
+                        total_loss = total_loss + loss
+                        
+                    losses.append(total_loss)
                     predictions.append(preds)
+
+                # plt.imshow(data['image'][0].detach().cpu().numpy().reshape(150, 150, 3))
+                # plt.show()
+                # print(torch.round(torch.clamp(preds[0], min = 1, max = 6)), outputs['num_segments'])
+                # input('continue')
+
             losses = tensor(losses).to(DEVICE)
 
             if self.train_param.plot_interval != None and self.epoch % self.train_param.plot_interval == 0:
-                self.plotTrajectory(outputs[0], preds[0])
+                self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], preds[0][:self.train_param.plot_num])
             # print('Epoch', self.epoch, 'validation loss :',losses.mean())
 
             if plot_comparison_idx != None:
@@ -165,10 +185,10 @@ class Trainer:
         return predictions, losses
 
     def checkStoppingCondition(self):
-        if self.train_param.max_epoch != None and self.epoch > self.train_param.max_epoch:
+        if self.train_param.max_epoch != None and self.epoch >= self.train_param.max_epoch:
             self.train = False
             self.writeLog('\nStopping Reason : Maximum epoch reached')
-        if self.train_param.max_val_fail != None and self.val_fail_count > self.train_param.max_val_fail:
+        if self.train_param.max_val_fail != None and self.val_fail_count >= self.train_param.max_val_fail:
             self.train = False
             self.writeLog('\nStopping Reason : Validation fail limit reached')
 
@@ -198,15 +218,49 @@ class Trainer:
             self.writer.add_scalar('data/val_fail_count', self.val_fail_count, self.epoch)
 
     def plotTrajectory(self, original_traj, pred_traj):
-        original_traj = original_traj.cpu().numpy().reshape(-1, 2)
-        pred_traj = pred_traj.cpu().numpy().reshape(-1, 2)
-        plt.cla()
-        plt.clf()
-        plt.close('all')
-        plt.title("Trajectory Reconstruction - Epoch " + str(self.epoch))
-        plt.figure(1, figsize=(6, 6))
-        plt.axis("equal")
-        plt.plot(original_traj[:, 0], original_traj[:, 1], color = 'green')
-        plt.plot(pred_traj[:, 0], pred_traj[:, 1], color = 'red', linestyle = '--')
+        base_size = 6
+        fig, axs = plt.subplots(1, len(original_traj), figsize=(base_size*len(original_traj), base_size))
+        if self.epoch != 0: title = 'Trajectory Reconstruction - Epoch ' + str(self.epoch)
+        else: title = ''
+        fig.suptitle(title)
+
+        for i in range(len(original_traj)):
+            output_np = original_traj[i].detach().cpu().numpy().reshape(-1, 2)
+            pred_np = pred_traj[i].detach().cpu().numpy().reshape(-1, 2)
+            # print(axs[0], axs[1], axs[2])
+            if len(original_traj) > 1:
+                axs[i].plot(output_np[:, 0], output_np[:, 1], color = 'blue')
+                axs[i].scatter(output_np[:, 0], output_np[:, 1], color = 'blue')
+                axs[i].plot(pred_np[:, 0], pred_np[:, 1], color = 'r', ls=':')
+                axs[i].scatter(pred_np[:, 0], pred_np[:, 1], color = 'r')
+                axs[i].scatter(pred_np[0, 0], pred_np[0, 1], color = 'g')
+                # plt.title('Epoch ' + str(epoch) + ' | Loss = ' + str(loss))
+                axs[i].set_xlim(-2, 8)
+                axs[i].set_ylim(-2, 8)
+                axs[i].legend(['original', 'dmp'])
+            else:
+                axs.plot(output_np[:, 0], output_np[:, 1], color = 'blue')
+                axs.scatter(output_np[:, 0], output_np[:, 1], color = 'blue')
+                axs.plot(pred_np[:, 0], pred_np[:, 1], color = 'r', ls=':')
+                axs.scatter(pred_np[:, 0], pred_np[:, 1], color = 'r')
+                axs.scatter(pred_np[0, 0], pred_np[0, 1], color = 'g')
+                # plt.title('Epoch ' + str(epoch) + ' | Loss = ' + str(loss))
+                axs.set_xlim(-2, 8)
+                axs.set_ylim(-2, 8)
+                axs.legend(['original', 'dmp'])
+            # plt.axis('equal')
         plt.draw()
         plt.show(block=False)
+
+        # original_traj = original_traj.cpu().numpy().reshape(-1, 2)
+        # pred_traj = pred_traj.cpu().numpy().reshape(-1, 2)
+        # plt.cla()
+        # plt.clf()
+        # plt.close('all')
+        # plt.title("Trajectory Reconstruction - Epoch " + str(self.epoch))
+        # plt.figure(1, figsize=(6, 6))
+        # plt.axis("equal")
+        # plt.plot(original_traj[:, 0], original_traj[:, 1], color = 'green')
+        # plt.plot(pred_traj[:, 0], pred_traj[:, 1], color = 'red', linestyle = '--')
+        # plt.draw()
+        # plt.show(block=False)

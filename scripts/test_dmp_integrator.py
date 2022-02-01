@@ -30,9 +30,7 @@ if __name__ == '__main__':
     file_data_loader = PickleDataLoader(FILE_PATH)
     print(FILE_NAME + ' imported')
     print('Splitting dataset')
-    data_loaders, _ = file_data_loader.getDataLoader(input_mode  = model_param.input_mode,
-                                                     output_mode = model_param.output_mode,
-                                                     data_ratio  = train_param.data_ratio,
+    data_loaders, _ = file_data_loader.getDataLoader(data_ratio  = train_param.data_ratio,
                                                      batch_size  = train_param.batch_size)
     trainer = Trainer(model, train_param)
     trainer.test(data_loaders, plot_comparison_idx = 30)
