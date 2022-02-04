@@ -1,1 +1,1 @@
-# Segmented-Deep-DMPs
+# SegmentedDeepDMPs

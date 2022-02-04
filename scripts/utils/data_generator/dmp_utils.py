@@ -3,8 +3,8 @@ from pydmps.dmp_discrete import DMPs_discrete
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy.random import rand, randint
-from utils.data_generator.utils import smooth
-from utils.data_generator.utils import rotateCoordNp
+from .utils import smooth
+from .utils import rotateCoordNp
 
 def generate_dmps(trajs, n_bf, ay, dt, segmented):
     if not segmented:
@@ -16,13 +16,14 @@ def generate_dmps(trajs, n_bf, ay, dt, segmented):
         dmps = []
         for traj in trajs:
             y_des = np.array(traj).T
+            # print(y_des)
             dof = y_des.shape[0]
             dmp = pydmps.dmp_discrete.DMPs_discrete(n_dmps = dof, n_bfs=n_bf, ay = np.ones(dof) * ay, dt = dt)
             dmp.imitate_path(y_des = y_des, plot = False)
             dmps.append(dmp)
     return dmps
 
-def plot_dmp_trajectory(dmps, segmented):
+def plot_dmp_trajectory(dmps, segmented, plot = True):
     y_tracks = []
     dy_tracks = []
     ddy_tracks = []
@@ -36,7 +37,9 @@ def plot_dmp_trajectory(dmps, segmented):
             dy_tracks.append(dy_track)
             ddy_tracks.append(ddy_track)
         y_tracks, dy_tracks, ddy_tracks = recombine_trajs(y_tracks, dy_tracks, ddy_tracks)
-    plt.scatter(y_tracks[:, 0], y_tracks[:, 1], linewidth=2, color='r', ls=':')
+    if plot:
+        plt.scatter(y_tracks[:, 0], y_tracks[:, 1], linewidth=2, color='r', ls=':')
+        plt.show()
     return y_tracks, dy_tracks, ddy_tracks
 
 def recombine_trajs(y, dy, ddy):

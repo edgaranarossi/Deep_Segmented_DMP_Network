@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from utils.data_generator.utils.transformations import rotateCoordList
+from .utils.transformations import rotateCoordList
 
 def plot_trajectory(traj):
     traj_x = [tr[0] for tr in traj['subdivided']]

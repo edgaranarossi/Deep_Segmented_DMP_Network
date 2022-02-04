@@ -54,21 +54,15 @@ class PickleDataLoader:
         data_length                         = None
         self.with_scaling                   = False
 
-        if 'dmp_outputs_unscaled' in self.data:
-            print('dmp_outputs_unscaled')
-            self.dmp_outputs                    = self.data['dmp_outputs_unscaled'][:data_limit, begin_idx:]
-            self.tau                            = self.dmp_outputs[0][0] if include_tau else 1
-            if data_length == None: data_length = len(self.dmp_outputs)
-        if 'dmp_outputs_scaled' in self.data:
-            self.dmp_outputs_scaled             = self.data['dmp_outputs_scaled'][:data_limit, begin_idx:]
-            self.tau                            = self.dmp_outputs_scaled[0][0] if include_tau else 1
-            if data_length == None: data_length = len(self.dmp_outputs_scaled)
-        if 'segmented_dmp_outputs_unscaled' in self.data:
-            self.segment_dmp_outputs            = self.data['segmented_dmp_outputs_unscaled'][:data_limit, begin_idx:]
-            if data_length == None: data_length = len(self.segment_dmp_outputs)
-        if 'segmented_dmp_outputs_scaled' in self.data:
-            self.segment_dmp_outputs_scaled     = self.data['segmented_dmp_outputs_scaled'][:data_limit, begin_idx:]
-            if data_length == None: data_length = len(self.segment_dmp_outputs_scaled)
+        if 'dmp_y0_goal_w_unscaled' in self.data:
+            # print('dmp_outputs_unscaled')
+            self.dmp_y0_goal_w_unscaled         = self.data['dmp_y0_goal_w_unscaled'][:data_limit, begin_idx:]
+            self.tau                            = self.dmp_y0_goal_w_unscaled[0][0] if include_tau else 1
+            if data_length == None: data_length = len(self.dmp_y0_goal_w_unscaled)
+        if 'dmp_y0_goal_w_scaled' in self.data:
+            self.dmp_y0_goal_w_scaled             = self.data['dmp_y0_goal_w_scaled'][:data_limit, begin_idx:]
+            self.tau                            = self.dmp_y0_goal_w_scaled[0][0] if include_tau else 1
+            if data_length == None: data_length = len(self.dmp_y0_goal_w_scaled)
 
         if 'segmented_dict_dmp_outputs' in self.data:
             self.segmented_dict_dmp_outputs     = self.data['segmented_dict_dmp_outputs'][:data_limit]
@@ -76,12 +70,14 @@ class PickleDataLoader:
         if 'segmented_dict_dmp_types' in self.data:
             self.segmented_dict_dmp_types       = self.data['segmented_dict_dmp_types'][:data_limit]
             if data_length == None: data_length = len(self.segmented_dict_dmp_types)
+
         if 'image' in self.data:
             self.images                         = self.data['image'][:data_limit] / 255
             if data_length == None: data_length = len(self.images)
         if 'image_name' in self.data:
             self.image_names                    = self.data['image_name'][:data_limit]
             if data_length == None: data_length = len(self.image_names)
+
         if 'caption' in self.data:
             self.captions                       = self.data['caption'][:data_limit]
             if data_length == None: data_length = len(self.captions)
@@ -95,15 +91,15 @@ class PickleDataLoader:
         if 'traj' in self.data:
             self.traj                           = self.data['traj'][:data_limit] * 100
             if data_length == None: data_length = len(self.traj)
+        if 'dmp_traj_interpolated' in self.data:
+            self.traj_interpolated          = self.data['dmp_traj_interpolated'][:data_limit]
+            if data_length == None: data_length = len(self.traj_interpolated)
         if 'dmp_traj' in self.data:
             self.dmp_traj                       = self.data['dmp_traj'][:data_limit]
             if data_length == None: data_length = len(self.dmp_traj)
         if 'dmp_traj_padded' in self.data:
             self.dmp_traj_padded                = self.data['dmp_traj_padded'][:data_limit]
             if data_length == None: data_length = len(self.dmp_traj_padded)
-        if 'dmp_traj_interpolated' in self.data:
-            self.dmp_traj_interpolated          = self.data['dmp_traj_interpolated'][:data_limit]
-            if data_length == None: data_length = len(self.dmp_traj_interpolated)
         if 'segmented_dmp_traj' in self.data:
             self.segmented_dmp_traj             = self.data['segmented_dmp_traj'][:data_limit]
             if data_length == None: data_length = len(self.segmented_dmp_traj)
@@ -113,11 +109,6 @@ class PickleDataLoader:
             self.with_scaling               = True
             # self.dmp_scaling[0]             = self.dmp_scaling[0][begin_idx:]
             # self.dmp_scaling[1]             = self.dmp_scaling[1][begin_idx:]
-        if 'segmented_dmp_scaling' in self.data:
-            self.segmented_dmp_scaling      = self.data['segmented_dmp_scaling']
-            self.with_scaling               = True
-            # self.segmented_dmp_scaling[0]   = self.segmented_dmp_scaling[0][begin_idx:]
-            # self.segmented_dmp_scaling[1]   = self.segmented_dmp_scaling[1][begin_idx:]
 
         # self.dmp_scaling.x_max          = from_numpy(self.dmp_scaling.x_max[begin_idx:]).to(DEVICE)
         # self.dmp_scaling.x_min          = from_numpy(self.dmp_scaling.x_min[begin_idx:]).to(DEVICE)
@@ -133,26 +124,17 @@ class PickleDataLoader:
                 inputs['image']                         = torch.from_numpy(self.images[idx]).float().to(DEVICE)
             if 'caption' in self.data:
                 inputs['caption']                       = self.captions[idx]
-            if 'dmp_outputs_unscaled' in self.data:
-                inputs['dmp_param']                     = torch.from_numpy(self.dmp_outputs[idx][begin_idx:]).float().to(DEVICE)
-            if 'dmp_outputs_scaled' in self.data:
-                inputs['dmp_param_scaled']              = torch.from_numpy(self.dmp_outputs_scaled[idx][begin_idx:]).float().to(DEVICE)
-            if 'segmented_dmp_outputs_unscaled' in self.data:
-                inputs['segmented_dmp_param']           = torch.from_numpy(self.segment_dmp_outputs[idx][begin_idx:]).float().to(DEVICE)
-            if 'segmented_dmp_outputs_scaled' in self.data:
-                inputs['segmented_dmp_param_scaled']    = torch.from_numpy(self.segment_dmp_outputs_scaled[idx][begin_idx:]).float().to(DEVICE)
+            if 'dmp_y0_goal_w_unscaled' in self.data:
+                inputs['dmp_y0_goal_w_unscaled']        = torch.from_numpy(self.dmp_y0_goal_w_unscaled[idx][begin_idx:]).float().to(DEVICE)
+            if 'dmp_y0_goal_w_scaled' in self.data:
+                inputs['dmp_y0_goal_w_scaled']          = torch.from_numpy(self.dmp_y0_goal_w_scaled[idx][begin_idx:]).float().to(DEVICE)
             self.combined_inputs.append(inputs)
 
             outputs = {}
-            if 'dmp_outputs_unscaled' in self.data:
-                outputs['dmp_param']                    = torch.from_numpy(self.dmp_outputs[idx][begin_idx:]).float().to(DEVICE)
-            if 'dmp_outputs_scaled' in self.data:
-                outputs['dmp_param_scaled']             = torch.from_numpy(self.dmp_outputs_scaled[idx][begin_idx:]).float().to(DEVICE)
-            if 'segmented_dmp_outputs_unscaled' in self.data:
-                outputs['segmented_dmp_param']          = torch.from_numpy(self.segment_dmp_outputs[idx][begin_idx:]).float().to(DEVICE)
-            if 'segmented_dmp_outputs_scaled' in self.data:
-                outputs['segmented_dmp_param_scaled']   = torch.from_numpy(self.segment_dmp_outputs_scaled[idx][begin_idx:]).float().to(DEVICE)
-            
+            if 'dmp_y0_goal_w_unscaled' in self.data:
+                outputs['dmp_y0_goal_w_unscaled']       = torch.from_numpy(self.dmp_y0_goal_w_unscaled[idx][begin_idx:]).float().to(DEVICE)
+            if 'dmp_y0_goal_w_scaled' in self.data:
+                outputs['dmp_y0_goal_w_scaled']         = torch.from_numpy(self.dmp_y0_goal_w_scaled[idx][begin_idx:]).float().to(DEVICE)
             if 'segmented_dict_dmp_outputs' in self.data:
                 outputs['segmented_dict_dmp_outputs']   = torch.from_numpy(self.segmented_dict_dmp_outputs[idx]).float().to(DEVICE)
             if 'segmented_dict_dmp_types' in self.data:
@@ -161,12 +143,12 @@ class PickleDataLoader:
                 outputs['num_segments']                 = torch.from_numpy(self.num_segments[idx]).float().to(DEVICE)
             if 'traj' in self.data:
                 outputs['traj']                         = torch.from_numpy(self.traj[idx]).float().to(DEVICE)
+            if 'dmp_traj_interpolated' in self.data:
+                outputs['traj_interpolated']        = torch.from_numpy(self.traj_interpolated[idx]).float().to(DEVICE)
             if 'dmp_traj' in self.data:
                 outputs['dmp_traj']                     = torch.from_numpy(self.dmp_traj[idx]).float().to(DEVICE)
             if 'dmp_traj_padded' in self.data:
                 outputs['dmp_traj_padded']              = torch.from_numpy(self.dmp_traj_padded[idx]).float().to(DEVICE)
-            if 'dmp_traj_interpolated' in self.data:
-                outputs['dmp_traj_interpolated']        = torch.from_numpy(self.dmp_traj_interpolated[idx]).float().to(DEVICE)
             if 'segmented_dmp_traj' in self.data:
                 outputs['segmented_dmp_traj']           = torch.from_numpy(self.segmented_dmp_traj[idx]).float().to(DEVICE)
             self.combined_outputs.append(outputs)
@@ -197,9 +179,7 @@ class PickleDataLoader:
         test_loader                     = DataLoader(dataset = test_dataset, batch_size = batch_size, shuffle = True)
 
         if self.with_scaling:
-            if 'segmented_dmp_scaling' in self.data:
-                scaling = self.segmented_dmp_scaling
-            elif 'dmp_scaling' in self.data:
+            if 'dmp_scaling' in self.data:
                 scaling = self.dmp_scaling
         else:
             scaling = None

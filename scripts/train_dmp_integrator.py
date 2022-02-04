@@ -12,7 +12,7 @@ from os import listdir
 from time import sleep
 
 init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Segmented-Deep-DMPs'
+ROOT_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
 chdir(ROOT_DIR)
 
 FILE_NAME = 'dmp_parameter-traj_N_2000000_random-line-curves-scale_50-pos_randomized__n-bf_15_ay_15_dt_0_scale-pos_1_scale-w_1_lim-w_1e8.pkl'
@@ -41,7 +41,7 @@ def writeLog(log):
 
 def writeInitLog():
     writeLog('Network created: ' + init_time)
-    writeLog('Model : Segmented-Deep-DMPs.scripts.utils.networks.DMPIntegratorNet')
+    writeLog('Model : SegmentedDeepDMPs.scripts.utils.networks.DMPIntegratorNet')
     writeLog('Data Path : ' + FILE_PATH)
     writeLog('Model Save Path : ' + MODEL_SAVE_PATH)
     writeLog('Layer Sizes : ' + str(model.layer_sizes))

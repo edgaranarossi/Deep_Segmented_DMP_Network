@@ -2,7 +2,7 @@ import numpy as np
 # from numpy.core.fromnumeric import mean
 import torch
 import numpy as np
-from torch import round, mean, squeeze, empty, tensor, clamp
+from torch import mean, tensor
 from typing import List
 import copy
 from os.path import join
@@ -26,7 +26,7 @@ class Trainer:
         self.epoch = 0
         
         self.loss_fns = []
-        for loss_type in self.train_param.loss_type:
+        for loss_type in self.model_param.loss_type:
             if loss_type == 'MSE':
                 self.loss_fns.append(torch.nn.MSELoss())
             elif loss_type == 'SDTW':
@@ -43,13 +43,13 @@ class Trainer:
         train_loaders = data_loaders[0]
         val_loaders = data_loaders[1]
 
-        self.writeLog('Loss Function : ' + str(self.loss_fns))
-        self.writeLog('Optimizer : ' + str(self.optimizer))
+        self.train_param.writeLog('Loss Function : ' + str(self.loss_fns))
+        self.train_param.writeLog('Optimizer : ' + str(self.optimizer))
 
         _, val_losses = self.getLosses(val_loaders, train = False)
         best_val_loss = mean(val_losses)
 
-        self.writeLog('Initial Validation Loss : ' + str(best_val_loss) + '\n')
+        self.train_param.writeLog('Initial Validation Loss : ' + str(best_val_loss) + '\n')
 
         self.train = True
         self.val_fail_count = 0
@@ -85,14 +85,14 @@ class Trainer:
                 if self.epoch % self.train_param.validation_interval == 0: 
                     # self.writeLog('Epoch : ' + str(self.epoch) + ' | Training Loss : ' + str(round(self.mean_train_losses[-1], ROUND)) + ' | Validation Loss : ' + str(round(self.mean_val_losses[-1], ROUND)))
                     log_str = 'Epoch : {} | Train Loss : {:.'+str(ROUND)+'f} | Val. Loss : {:.'+str(ROUND)+'f} | Val. Fail : {}'
-                    self.writeLog(log_str.format(self.epoch, 
+                    self.train_param.writeLog(log_str.format(self.epoch, 
                                                  self.mean_train_losses[-1], 
                                                  self.mean_val_losses[-1],
                                                  self.val_fail_count))
                     #  + ' | Validation Fail Count : ' + str(self.val_fail_count)
                 else:
                     log_str = 'Epoch : {} | Train Loss : {:.'+str(ROUND)+'f}'
-                    self.writeLog(log_str.format(self.epoch, 
+                    self.train_param.writeLog(log_str.format(self.epoch, 
                                                  self.mean_train_losses[-1]))
                     # self.writeLog('Epoch : ' + str(self.epoch) + ' | Training Loss : ' + str(round(self.mean_train_losses[-1], ROUND)))
 
@@ -100,14 +100,14 @@ class Trainer:
 
             except KeyboardInterrupt:
                 self.train = False
-                self.writeLog('\nStopping Reason : Manual stop (Ctrl+C)')
+                self.train_param.writeLog('\nStopping Reason : Manual stop (Ctrl+C)')
 
         # Write Final logs
         self.writeTensorboardLogs()
 
-        self.writeLog('Final Epoch = ' + str(self.epoch))
-        self.writeLog('Final Validation Loss : ' + str(self.mean_val_losses[-1].item()))
-        self.writeLog('Best Validation Loss : ' + str(best_val_loss.item()))
+        self.train_param.writeLog('Final Epoch = ' + str(self.epoch))
+        self.train_param.writeLog('Final Validation Loss : ' + str(self.mean_val_losses[-1].item()))
+        self.train_param.writeLog('Best Validation Loss : ' + str(best_val_loss.item()))
         if self.save_path != None: torch.save(self.model.state_dict(), join(self.save_path, 'final_net_parameters'))
 
         print(datetime.now().strftime("%Y-%m-%d_%H-%M-%S ::"), "Training finished")
@@ -187,20 +187,10 @@ class Trainer:
     def checkStoppingCondition(self):
         if self.train_param.max_epoch != None and self.epoch >= self.train_param.max_epoch:
             self.train = False
-            self.writeLog('\nStopping Reason : Maximum epoch reached')
+            self.train_param.writeLog('\nStopping Reason : Maximum epoch reached')
         if self.train_param.max_val_fail != None and self.val_fail_count >= self.train_param.max_val_fail:
             self.train = False
-            self.writeLog('\nStopping Reason : Validation fail limit reached')
-
-    def writeLog(self, log):
-        if log[0] == '\n':
-            print('\n', datetime.now().strftime("%Y-%m-%d_%H-%M-%S ::"), log[1:])
-        else:
-            print(datetime.now().strftime("%Y-%m-%d_%H-%M-%S ::"), log)
-        if self.LOG_WRITER_PATH != None:
-            LOG_FILE = open(self.LOG_WRITER_PATH, 'a')
-            LOG_FILE.write('\n' + log)
-            LOG_FILE.close()
+            self.train_param.writeLog('\nStopping Reason : Validation fail limit reached')
 
     def writeTensorboardLogs(self):
         if self.writer != None: 

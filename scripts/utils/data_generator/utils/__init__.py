@@ -1,2 +1,2 @@
-from utils.data_generator.utils.chaikin import Smooth_by_Chaikin as smooth
-from utils.data_generator.utils.transformations import rotateCoordList, rotateCoordNp
+from .chaikin import Smooth_by_Chaikin as smooth
+from .transformations import rotateCoordList, rotateCoordNp

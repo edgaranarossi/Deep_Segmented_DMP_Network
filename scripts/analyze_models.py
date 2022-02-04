@@ -11,9 +11,9 @@ from os.path import join, isdir
 import pandas as pd
 
 net_desc_name = 'network_description.txt'
-model_dir = '/home/edgar/rllab/scripts/dmp/Segmented-Deep-DMPs/models'
+model_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/models'
 models = [i for i in listdir(model_dir) if isdir(join(model_dir,i)) and
-                                           'Fixed' in i and
+                                           'Dynamic' in i and
                                            net_desc_name in listdir(join(model_dir,i))]
 models = sorted(models)
 
@@ -21,16 +21,16 @@ descs = []
 for model in models:
     with open(join(model_dir, model, net_desc_name)) as f:
         lines = f.readlines()
-    descs.append(lines)
+    descs.append([model, lines])
     
-valid_models = [i for i in descs if len(i) > 0 and
-                                    # 'Best Validation Loss' in i[-1] and
-                                    ' :: Epoch : ' not in i[-1] and
-                                    'Network created' in i[1]]
+valid_models = [i for i in descs if len(i[1]) > 0 and
+                                    'Final Validation Loss' in i[1][-2] and
+                                    ' :: Epoch : ' not in i[1][-1] and
+                                    'Network created' in i[1][1]]
 
 parsed = []
 for model in valid_models:
-    parsed.append([model[1].split(': ')[-1][:-1], float(model[-1].split(' : ')[-1])])
+    parsed.append([model[0], model[1][1].split(': ')[-1][:-1], float(model[1][-1].split(' : ')[-1])])
 df = pd.DataFrame(parsed)
 #%%
 models_with_img = [i for i in listdir(model_dir) if isdir(join(model_dir,i)) and
@@ -59,7 +59,7 @@ df = pd.DataFrame(parsed)
 #%%
 import pickle as pkl
 
-model_name = 'Model_FixedSegmentDictDMPNet_2022-01-30_20-37-33'
+model_name = 'Model_DynamicSegmentDictDMPNet_2022-02-01_20-48-50'
 train_param = pkl.load(open(join(model_dir, model_name, 'train-model-dmp_param.pkl'), 'rb'))
 model_param = train_param.model_param
 dmp_param = model_param.dmp_param
