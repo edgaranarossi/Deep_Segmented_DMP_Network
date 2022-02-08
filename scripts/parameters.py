@@ -5,7 +5,7 @@ from pydmps.dmp_discrete import DMPs_discrete
 from os.path import join, isdir
 from os import makedirs
 from datetime import datetime
-from utils.networks import CNNDMPNet, NewCNNDMPNet, FixedSegmentDictDMPNet, DynamicSegmentDictDMPNet, SegmentNumCNN
+from utils.networks import CNNDMPNet, FixedSegmentDictDMPNet, DynamicSegmentDictDMPNet, SegmentNumCNN
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -15,8 +15,11 @@ class TrainingParameters:
         self.init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # Dataset parameter
+        # self.dataset_dir = join(self.root_dir, 'data/pkl/random_lines_3')
+        # self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_5_ay_4_dt_0.05_normal_n-bf_6_ay_6_dt_0.01_2022-02-05_04-15-34.pkl'
         self.dataset_dir = join(self.root_dir, 'data/pkl/shapes-8')
-        self.dataset_name = 'image-dict_output-traj_N_100000_n-bf_5_ay_4_dt_0_2022-02-03_22-04-03.pkl'
+        # self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_5_ay_4_dt_0.05_normal_n-bf_6_ay_6_dt_0.01_2022-02-05_04-13-23.pkl'
+        self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_1_ay_4_dt_0.05_normal_n-bf_200_ay_75_dt_0.01_2022-02-07_21-56-44.pkl'
         self.dataset_path = join(self.dataset_dir,  self.dataset_name)
 
         self.model_param = ModelParameters()
@@ -34,7 +37,7 @@ class TrainingParameters:
         # Optimizer parameters
         self.optimizer_type = 'adam'
         self.sdtw_gamma = 1e-3
-        self.learning_rate = 1e-3
+        self.learning_rate = 3e-6
         self.eps = 5e-3
         self.weight_decay = None
 
@@ -50,7 +53,7 @@ class TrainingParameters:
         self.plot_num = 5
 
         # Data parameters
-        self.batch_size = 25
+        self.batch_size = 10
         self.training_ratio = 7
         self.validation_ratio = 2
         self.test_ratio = 1
@@ -83,64 +86,87 @@ class TrainingParameters:
 
 class ModelParameters:
     def __init__(self):
-        """
-        output_mode:
-        'dmp' : Use old loss function
-        'traj' : Use new loss function which compares trajectory
-        """
         # Network Parameters
-        self.input_mode = ['image']  
-        self.output_mode = ['dmp_y0_goal_w_scaled']
-        # self.output_mode = ['segmented_dict_dmp_outputs', 'num_segments', 'segmented_dict_dmp_types']
-        # self.output_mode = ['num_segments']
-        self.image_dim = (3, 150, 150)
+        self.image_dim = (1, 150, 150)
 
         # Define hidden layers sizes (No need to define output layer size)
         # self.layer_sizes = [4096, 2048, 2048]
         # self.layer_sizes = [2048, 2048, 2048]
         # self.layer_sizes = [1024, 1024, 1024]
-        # self.layer_sizes = [128, 128, 128]
-        self.layer_sizes = [2048, 2048, 1024, 512, 256, 128, 64]
+        self.layer_sizes = [128, 128, 128]
+        # self.layer_sizes = [2048, 2048, 1024, 512, 256, 128, 64]
         # self.layer_sizes = [200, 50]
+        # self.layer_sizes = [100, 8]
         self.dropout_prob = 0.3
 
         self.dmp_param = DMPParameters()
 
-        if sorted(self.input_mode) == sorted(['image']) and \
-           sorted(self.output_mode) == sorted(['dmp_y0_goal_w_scaled']) and\
-           self.dmp_param.segments == None :
+        """
+        Network configurations:
+        1.1: CNNDMPNet (outputs scaled)
+        1.2: CNNDMPNet (outputs unscaled)
+        2: NewCNNDMPNet
+        3: FixedSegmentDictDMPNet
+        4: DynamicSegmentDictDMPNet
+        5: SegmentNumCNN
+        """
+        self.network_configuration = '2'
+
+        if self.network_configuration == '1.1':
             self.model = CNNDMPNet
-            self.loss_type = ['MSE']
-        elif sorted(self.input_mode) == sorted(['image']) and \
-           sorted(self.output_mode) == sorted(['dmp_y0_goal_w_unscaled']) and\
-           self.dmp_param.segments == None :
+
+            self.input_mode     = ['image']
+            self.output_mode    = ['dmp_y0_goal_w_scaled']
+            self.loss_type      = ['MSE']
+            self.dmp_param.segments = None
+
+        elif self.network_configuration == '1.2':
             self.model = CNNDMPNet
-            self.loss_type = ['MSE']
-        elif sorted(self.input_mode) == sorted(['image']) and \
-             sorted(self.output_mode) == sorted(['traj_interpolated']) and \
-             self.dmp_param.segments == None :
-            self.model = NewCNNDMPNet
-            self.loss_type = ['MSE']
-        elif sorted(self.input_mode) == sorted(['image']) and \
-             sorted(self.output_mode) == sorted(['traj_interpolated']) and \
-             self.dmp_param.segments != None :
+
+            self.input_mode     = ['image']
+            self.output_mode    = ['dmp_y0_goal_w']
+            self.loss_type      = ['MSE']
+            self.dmp_param.segments = None
+
+        if self.network_configuration == '2':
+            self.model = CNNDMPNet
+
+            self.input_mode     = ['image']
+            self.output_mode    = ['normal_dmp_traj']
+            self.loss_type      = ['DMPIntegrationMSE']
+            self.dmp_param.segments = None
+
+        elif self.network_configuration == '3':
             self.model = FixedSegmentDictDMPNet
-            self.loss_type = ['SDTW']
-        elif sorted(self.input_mode) == sorted(['image']) and \
-             sorted(self.output_mode) == sorted(['segmented_dict_dmp_outputs', 'num_segments', 'segmented_dict_dmp_types']) and \
-             self.dmp_param.segments != None :
+
+            self.input_mode     = ['image']
+            self.output_mode    = ['traj_interpolated']
+            self.loss_type      = ['SDTW']
+
+            assert self.dmp_param.segments != None
+
+        elif self.network_configuration == '4':
             self.model = DynamicSegmentDictDMPNet
-            self.loss_type = ['MSE', 'MSE', 'MSE']
-        elif sorted(self.input_mode) == sorted(['image']) and \
-             sorted(self.output_mode) == sorted(['num_segments']) and \
-             self.dmp_param.segments != None :
+
+            self.input_mode     = ['image']
+            self.output_mode    = ['points_padded', 'num_segments', 'segment_types_padded']
+            self.loss_type      = ['MSE', 'MSE', 'MSE']
+
+            assert self.dmp_param.segments != None
+
+        elif self.network_configuration == '5':
             self.model = SegmentNumCNN
-            self.loss_type = ['MSE']
+
+            self.input_mode     = ['image']
+            self.output_mode    = ['num_segments']
+            self.loss_type      = ['MSE']
+            
+            assert self.dmp_param.segments != None
+
         else:
-            raise ValueError('Wrong input-output-network configuration')
+            raise ValueError('Wrong network configuration input')
 
         ## Processed parameters # No need to manually modify
-        self.dmp_param.dof = len(self.image_dim) - 1
         if self.dmp_param.segments != None:
             self.dmp_param.ay = ones(self.dmp_param.segments, self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
         else:
@@ -148,23 +174,23 @@ class ModelParameters:
         if self.dmp_param.by == None:
             self.dmp_param.by = self.dmp_param.ay / 4
         else:
-            ones(self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.by
+            self.dmp_param.by = ones(self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.by
 
-        if self.model == CNNDMPNet and self.dmp_param.segments == None:
-            """
-            Calculate output layer size and add it to self.layer_sizes
-            """
+        """
+        Calculate output layer size and add it to self.layer_sizes
+        """
+        if self.model == CNNDMPNet:
             self.layer_sizes = self.layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
         
         self.dmp_param.timesteps = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
 class DMPParameters:
     def __init__(self):
-        self.segments   = None # Set to None for NewCNNDMPNet; Set to (int) for SegmentedDMPNet
-        self.dof        = None # No need to pre-define
+        self.segments   = 10
+        self.dof        = 2
         self.n_bf       = 200
         self.scale      = None # NEED to be defined. See dataset_importer
-        self.dt         = .01 # * (1 if self.segments == None else self.segments)
+        self.dt         = .01
         self.tau        = 1. # None if network include tau, assign a float value if not included
 
         # Canonical System Parameters
@@ -177,28 +203,71 @@ class DMPParameters:
 
         self.timesteps = None # No need to pre-define
 
-        # dict_trajectories = [
-        #                      [[0.0, 0.0],
-        #                       [1.0, 1.0]], # 0: Straight line
-        #                      [[0.0, 0.0],
-        #                       [1.0, 0.0],
-        #                       [1.0, 1.0]], # 1: Diagonal curve bottom
-        #                      [[0.0, 0.0],
-        #                       [0.0, 1.0],
-        #                       [1.0, 1.0]], # 2: Diagonal curve top
-        #                      [[0.0, 0.0],
-        #                       [0.0, 1.0],
-        #                       [1.0, 1.0],
-        #                       [1.0, 0.0]], # 3: Curve horizontal (Cannot move vertical)
-        #                      [[0.0, 0.0],
-        #                       [1.0, 0.0],
-        #                       [1.0, 1.0],
-        #                       [0.0, 1.0]], # 4: Curve vertical (Cannot move horizontal)
-        #                     ]
-
         dict_trajectories = [
                              [[0.0, 0.0],
-                              [1.0, 1.0]] # 0: Straight line
+                              [1.0, 1.0]], # 0: Straight line
+                             [[0.0, 0.0],
+                              [1.0, 0.0],
+                              [1.0, 1.0]], # 1: Diagonal curve bottom
+                             [[0.0, 0.0],
+                              [0.0, 1.0],
+                              [1.0, 1.0]], # 2: Diagonal curve top
+                            #  [[0.0, 0.0],
+                            #   [0.0, 1.0],
+                            #   [1.0, 1.0],
+                            #   [1.0, 0.0]], # 3: Curve horizontal (Cannot move vertical)
+                            #  [[0.0, 0.0],
+                            #   [1.0, 0.0],
+                            #   [1.0, 1.0],
+                            #   [0.0, 1.0]], # 4: Curve vertical (Cannot move horizontal)
+                            #  [[0.0, 0.0],
+                            #   [-1.0, 1.0]], # 0: Straight line
+                            #  [[0.0, 0.0],
+                            #   [-1.0, 0.0],
+                            #   [-1.0, 1.0]], # 1: Diagonal curve bottom
+                            #  [[0.0, 0.0],
+                            #   [0.0, 1.0],
+                            #   [-1.0, 1.0]], # 2: Diagonal curve top
+                            #  [[0.0, 0.0],
+                            #   [0.0, 1.0],
+                            #   [-1.0, 1.0],
+                            #   [-1.0, 0.0]], # 3: Curve horizontal (Cannot move vertical)
+                            #  [[0.0, 0.0],
+                            #   [-1.0, 0.0],
+                            #   [-1.0, 1.0],
+                            #   [0.0, 1.0]], # 4: Curve vertical (Cannot move horizontal)
+                            #  [[0.0, 0.0],
+                            #   [1.0, -1.0]], # 0: Straight line
+                            #  [[0.0, 0.0],
+                            #   [1.0, 0.0],
+                            #   [1.0, -1.0]], # 1: Diagonal curve bottom
+                            #  [[0.0, 0.0],
+                            #   [0.0, -1.0],
+                            #   [1.0, -1.0]], # 2: Diagonal curve top
+                            #  [[0.0, 0.0],
+                            #   [0.0, -1.0],
+                            #   [1.0, -1.0],
+                            #   [1.0, 0.0]], # 3: Curve horizontal (Cannot move vertical)
+                            #  [[0.0, 0.0],
+                            #   [1.0, 0.0],
+                            #   [1.0, -1.0],
+                            #   [0.0, -1.0]], # 4: Curve vertical (Cannot move horizontal)
+                            #  [[0.0, 0.0],
+                            #   [-1.0, -1.0]], # 0: Straight line
+                            #  [[0.0, 0.0],
+                            #   [-1.0, 0.0],
+                            #   [-1.0, -1.0]], # 1: Diagonal curve bottom
+                            #  [[0.0, 0.0],
+                            #   [0.0, -1.0],
+                            #   [-1.0, -1.0]], # 2: Diagonal curve top
+                            #  [[0.0, 0.0],
+                            #   [0.0, -1.0],
+                            #   [-1.0, -1.0],
+                            #   [-1.0, 0.0]], # 3: Curve horizontal (Cannot move vertical)
+                            #  [[0.0, 0.0],
+                            #   [-1.0, 0.0],
+                            #   [-1.0, -1.0],
+                            #   [0.0, -1.0]], # 4: Curve vertical (Cannot move horizontal)
                             ]
 
         self.traj_dict = []

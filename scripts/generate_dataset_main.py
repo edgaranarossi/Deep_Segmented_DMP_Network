@@ -17,11 +17,11 @@ def generate_shape_segments(shapes,
                             save_path,
                             image_target_size,
                             prefix,
-                            pad_to,
+                            pad_points,
                             dmp_output_dt = None,
                             dmp_output_bf = None,
                             dmp_output_ay = None):
-    global images, image_names, seg_dict_dmp_outputs, seg_dict_dmp_types, traj, traj_interpolated, dmp_traj_padded, num_segs
+    global images, image_names, seg_dict_dmp_outputs, seg_dict_dmp_types, traj, traj_interpolated, segment_dmp_traj, segment_dmp_traj_padded, num_segs, dmp_traj, dmp_y0_goal_w_scaled, dmp_y0_goal_w
     if not isdir(save_path): makedirs(save_path)
     shape_segments_generator = SegmentTrajectoryGenerator(shape_templates = shapes,
                                                           segment_types = segment_types,
@@ -29,7 +29,7 @@ def generate_shape_segments(shapes,
                                                           dict_dmp_ay = dict_dmp_ay,
                                                           dict_dmp_dt = dict_dmp_dt,
                                                           subdiv_traj_length = subdiv_traj_length,
-                                                          pad_to = pad_to)
+                                                          pad_points = pad_points)
     rand_shapes = shape_segments_generator.generateRandomizedShape(magnitude = random_magnitude,
                                                                    return_padded = 1, 
                                                                    return_interpolated = 1,
@@ -40,16 +40,18 @@ def generate_shape_segments(shapes,
                                                                    dmp_output_dt = dmp_output_dt,
                                                                    dmp_output_bf = dmp_output_bf,
                                                                    dmp_output_ay = dmp_output_ay)
-    for i in range(len(rand_shapes['dmp_traj'])):
+    for i in range(len(rand_shapes['image_names'])):
         img = Image.open(join(save_path, rand_shapes['image_names'][i]))
         images.append(np.array(img).reshape(3, image_target_size, image_target_size))
         image_names.append(rand_shapes['image_names'][i])
         traj.append(rand_shapes['traj'][i])
         traj_interpolated.append(rand_shapes['traj_interpolated'][i])
-        dmp_traj_padded.append(rand_shapes['dmp_traj_padded'][i])
+        segment_dmp_traj.append(rand_shapes['segment_dmp_traj'][i])
+        segment_dmp_traj_padded.append(rand_shapes['segment_dmp_traj_padded'][i])
         seg_dict_dmp_outputs.append(rand_shapes['points_padded'][i])
         seg_dict_dmp_types.append(rand_shapes['segment_types_padded'][i])
         num_segs.append(rand_shapes['segment_num'][i])
+        dmp_traj.append(rand_shapes['dmp_traj'][i])
         dmp_y0_goal_w.append(rand_shapes['dmp_y0_goal_w'][i])
 
 shapes = [
@@ -99,35 +101,39 @@ images = []
 image_names = []
 seg_dict_dmp_outputs = []
 seg_dict_dmp_types = []
-dmp_traj_padded = []
+segment_dmp_traj = []
+segment_dmp_traj_padded = []
 traj = []
 traj_interpolated = []
+dmp_traj = []
+dmp_y0_goal_w_scaled = []
 dmp_y0_goal_w = []
 num_segs = []
 
 num_shape = len(shapes)
 num_dataset = 12500
-# num_dataset = int(10)
+# num_dataset = int(1e5)
 print_every = 100
 checkpoints = [i for i in range(print_every, num_dataset * len(shapes), print_every)]
 start_num = 0
 cur_num = start_num
 
-dict_dmp_bf = 5
+dict_dmp_bf = 1
 dict_dmp_ay = 4
 dict_dmp_dt = 0.05
 dmp_output_dt = 0.01
-dmp_output_bf = 6
-dmp_output_ay = 6
+dmp_output_bf = 200
+dmp_output_ay = 75
 subdiv_traj_length = 300
 random_magnitude = 1e-1
 image_target_size = 150
 generation_date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 DATASET_NAME = 'shapes-8'
-# DATASET_NAME = 'random_100000'
+# DATASET_NAME = 'random_lines_4'
 IMAGE_DIR = join(dirname(getcwd()), 'data/images/' + DATASET_NAME + '_'+ generation_date)
-# max_num_points = 4
-max_num_points = None
+max_segments = 4
+max_num_points = max_segments + 1
+# max_num_points = None
 
 while cur_num < start_num + num_dataset:
     
@@ -147,7 +153,8 @@ while cur_num < start_num + num_dataset:
                             save_path = IMAGE_DIR,
                             image_target_size = image_target_size,
                             prefix = 'iter_'+str(cur_num + 1)+'-',
-                            pad_to = max_num_points,
+                            # pad_points = max_num_points,
+                            pad_points = None,
                             dmp_output_dt = dmp_output_dt,
                             dmp_output_bf = dmp_output_bf,
                             dmp_output_ay = dmp_output_ay)
@@ -160,14 +167,15 @@ while cur_num < start_num + num_dataset:
 
 dmp_y0_goal_w = np.array(dmp_y0_goal_w)
 scale = Scale([dmp_y0_goal_w[:,:4].min(), dmp_y0_goal_w[:,:4].max()], [dmp_y0_goal_w[:,4:].min(), dmp_y0_goal_w[:,4:].max()])
-norm_dmp_y0_goal_w = scale.normalize(dmp_y0_goal_w)
+dmp_y0_goal_w_scaled = scale.normalize(dmp_y0_goal_w)
 print('Generated', len(images), '/', int(num_dataset * len(shapes)))
 
 dataset = {'image'                      : np.array(images),
            'image_name'                 : image_names,
-           'segmented_dict_dmp_outputs' : np.array(seg_dict_dmp_outputs),
-           'segmented_dict_dmp_types'   : np.array(seg_dict_dmp_types),
-           'dmp_traj_padded'            : np.array(dmp_traj_padded),
+           'points_padded'              : np.array(seg_dict_dmp_outputs),
+           'segment_types_padded'       : np.array(seg_dict_dmp_types),
+           'segment_dmp_traj'           : segment_dmp_traj,
+           'segment_dmp_traj_padded'    : np.array(segment_dmp_traj_padded),
            'traj'                       : np.array(traj),
            'traj_interpolated'          : np.array(traj_interpolated),
            'dict_dmp_bf'                : dict_dmp_bf,
@@ -176,21 +184,26 @@ dataset = {'image'                      : np.array(images),
            'normal_dmp_bf'              : dmp_output_bf,
            'normal_dmp_ay'              : dmp_output_ay,
            'normal_dmp_dt'              : dmp_output_dt,
+           'normal_dmp_traj'            : np.array(dmp_traj),
            'num_segments'               : num_segs,
-           'dmp_y0_goal_w_scaled'       : norm_dmp_y0_goal_w,
+           'dmp_y0_goal_w'              : dmp_y0_goal_w,
+           'dmp_y0_goal_w_scaled'       : dmp_y0_goal_w_scaled,
            'dmp_scaling'                : scale
           }
 #%%
 filename = 'image-dict_output-traj'
 filename += '_N_' + str(len(images))
 # filename += '_max-points_' + str(max_num_points)
-filename += '_n-bf_' + str(int(dict_dmp_bf))
+filename += '_dict_n-bf_' + str(int(dict_dmp_bf))
 filename += '_ay_' + str(int(dict_dmp_ay))
-filename += '_dt_' + str(int(dict_dmp_dt))
+filename += '_dt_' + str(dict_dmp_dt)
+filename += '_normal_n-bf_' + str(int(dmp_output_bf))
+filename += '_ay_' + str(int(dmp_output_ay))
+filename += '_dt_' + str(dmp_output_dt)
 filename += '_' + generation_date
 filename += '.pkl'
 if not isdir(join(dirname(getcwd()), 'data/pkl', DATASET_NAME)): makedirs(join(dirname(getcwd()), 'data/pkl', DATASET_NAME))
 filepath = join(dirname(getcwd()), 'data/pkl', DATASET_NAME, filename)
 pkl.dump(dataset, open(filepath, 'wb'))
-print('\nGenerated', num_dataset, 'data')
+print('\nGenerated', len(images), 'data')
 print('Saved in', filepath)

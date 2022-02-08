@@ -10,10 +10,8 @@ from multiprocessing import Process
 from .dmp_utils import generate_dmps
 
 class SegmentTrajectoryGenerator:
-    def __init__(self, shape_templates : List[List[List]] = None, segment_types : List[List] = None, dict_dmp_bf = 5, dict_dmp_ay = 4, dict_dmp_dt = 0.05, subdiv_traj_length = 500, pad_to = None):
-        self.pad_to = pad_to
+    def __init__(self, shape_templates : List[List[List]] = None, segment_types : List[List] = None, dict_dmp_bf = 5, dict_dmp_ay = 4, dict_dmp_dt = 0.05, subdiv_traj_length = 500, pad_points = None):
         
-        self.generateDMPDictionary(dict_dmp_bf, dict_dmp_ay, dict_dmp_dt)
         
         if shape_templates != None and segment_types == None:
             segment_types = []
@@ -22,6 +20,11 @@ class SegmentTrajectoryGenerator:
                 for i in range(len(shape)-1):
                     shape_segment_types.append(0)
                 segment_types.append(shape_segment_types)
+            dict_dmp_bf = 1
+            
+        self.pad_points = pad_points if pad_points != None else (max([len(i) for i in shape_templates]))
+            
+        self.generateDMPDictionary(dict_dmp_bf, dict_dmp_ay, dict_dmp_dt)
                 
         self.shape_templates    = shape_templates
         self.segment_types      = segment_types
@@ -30,7 +33,7 @@ class SegmentTrajectoryGenerator:
         for segment_type in segment_types:
             segment_type_padded = segment_type[:]
             last = segment_type[-1]
-            while len(segment_type_padded) < ((self.pad_to - 1) if self.pad_to != None else max([len(i) for i in self.segment_types])):
+            while len(segment_type_padded) < self.pad_points - 1:
                 segment_type_padded.append(last)
             self.segment_types_padded.append(segment_type_padded)
         self.segment_types_padded = np.array(self.segment_types_padded)
@@ -48,7 +51,8 @@ class SegmentTrajectoryGenerator:
                 shape, num_segments = self.parseTrajectory(self.shape_templates[shape], self.segment_types[shape])
                 self.base_shapes.append(shape)
                 self.base_num_segments.append(num_segments)
-            self.padded_base_shapes = self.padTrajectory(self.base_shapes, (pad_to * self.segment_traj_length) if pad_to != None else pad_to)
+            # if self.pad_points != None:
+            #     self.padded_base_shapes = self.padTrajectory(self.base_shapes, self.pad_points * self.segment_traj_length)
             for shape in self.base_shapes:
                 self.subdivided_base_shapes.append(subDivideTraj(shape, self.subdiv_traj_length))
             self.subdivided_base_shapes = np.array(self.subdivided_base_shapes)
@@ -74,11 +78,10 @@ class SegmentTrajectoryGenerator:
                 traj = np.append(traj, segment, axis = 0)
         return traj, num_segments
     
-    def padTrajectory(self, trajs, pad_to = None):
-        max_length = max([i.shape[0] for i in trajs]) if pad_to == None else pad_to
+    def padTrajectory(self, trajs, pad_points = None):
+        max_length = max([i.shape[0] for i in trajs]) if pad_points == None else pad_points
         padded_shapes = []
         for traj in trajs:
-            # print(max_length, traj.shape[0])
             pad = np.tile(traj[-1,:].reshape(1,-1), (max_length - traj.shape[0], 1))
             padded_shapes.append(np.append(traj, pad, axis = 0))
         return np.array(padded_shapes)
@@ -212,20 +215,22 @@ class SegmentTrajectoryGenerator:
                                 dmp_output_dt = None,
                                 dmp_output_bf = None,
                                 dmp_output_ay = None):
-        data = {'points': None,
-                'points_padded': None,
-                'dmp_y0_goal_w': None,
-                'dmp_traj': None,
-                'dmp_traj_padded': None,
-                'traj': None,
-                'traj_interpolated': None,
-                'segment_types': self.segment_types,
-                'segment_types_padded': self.segment_types_padded,
-                'segment_num': self.base_num_segments}
+        data = {'points'                    : None,
+                'points_padded'             : None,
+                'dmp_y0_goal_w'             : None,
+                'dmp_traj'                  : None,
+                'segment_dmp_traj'          : None,
+                'segment_dmp_traj_padded'   : None,
+                'traj'                      : None,
+                'traj_interpolated'         : None,
+                'segment_types'             : self.segment_types,
+                'segment_types_padded'      : self.segment_types_padded,
+                'segment_num'               : self.base_num_segments}
         randomized_dmp_traj = []
         randomized_shapes = []
         if dmp_output_ay != None and dmp_output_bf != None and dmp_output_dt != None:
             dmp_y0_goal_w = []
+            dmp_traj = []
         for shape in range(len(self.shape_templates)):
             randomized_shape = np.array(self.shape_templates[shape])
             range_x = randomized_shape[:,0].max() - randomized_shape[:,0].min()
@@ -237,17 +242,19 @@ class SegmentTrajectoryGenerator:
             
             if dmp_output_ay != None and dmp_output_bf != None and dmp_output_dt != None:
                 dmp = generate_dmps(np.array(parsed_shape), dmp_output_bf, dmp_output_ay, dmp_output_dt, False)
-                dmp_y0_goal_w.append(np.concatenate([dmp.y0.reshape(-1), dmp.goal.reshape(-1), dmp.w.reshape(-1)]))    
+                dmp_y0_goal_w.append(np.concatenate([dmp.y0.reshape(-1), dmp.goal.reshape(-1), dmp.w.reshape(-1)]))
+                dmp_traj.append(dmp.rollout())
             
             randomized_shapes.append(np.array(randomized_shape))
             randomized_dmp_traj.append(parsed_shape)
             
         data['points'] = randomized_shapes
-        data['points_padded'] = self.padTrajectory(randomized_shapes, self.pad_to)
-        data['dmp_traj'] = randomized_dmp_traj
+        data['points_padded'] = self.padTrajectory(randomized_shapes, self.pad_points)
+        data['segment_dmp_traj'] = randomized_dmp_traj
+        data['dmp_traj'] = dmp_traj
         data['dmp_y0_goal_w'] = dmp_y0_goal_w
         
-        if return_padded: data['dmp_traj_padded'] = self.padTrajectory(randomized_dmp_traj, ((self.pad_to - 1) * self.segment_traj_length) if self.pad_to != None else self.pad_to)
+        if return_padded: data['segment_dmp_traj_padded'] = self.padTrajectory(randomized_dmp_traj, ((self.pad_points - 1) * self.segment_traj_length) if self.pad_points != None else self.pad_points)
         if return_interpolated: 
             subdivided_shape = []
             for shape in randomized_dmp_traj:

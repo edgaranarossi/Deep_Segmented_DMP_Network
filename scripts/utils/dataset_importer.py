@@ -34,7 +34,7 @@ class Scale:
                               self.w_new.min
         return X_normalized
 
-    def denormalize(self, X):
+    def denormalize_np(self, X):
         X_np = np.array(X)
         X_denormalized = np.zeros_like(X_np)
         X_denormalized[:, :4] = (X_np[:, :4] - self.y_new.min) / \
@@ -47,6 +47,18 @@ class Scale:
                                 self.w_old.min
         return X_denormalized
 
+    def denormalize_torch(self, X):
+        X_denormalized = torch.zeros_like(X)
+        X_denormalized[:, :4] = (X[:, :4] - self.y_new.min) / \
+                                (self.y_new.max - self.y_new.min) * \
+                                (self.y_old.max - self.y_old.min) + \
+                                self.y_old.min
+        X_denormalized[:, 4:] = (X[:, 4:] - self.w_new.min) / \
+                                (self.w_new.max - self.w_new.min) * \
+                                (self.w_old.max - self.w_old.min) + \
+                                self.w_old.min
+        return X_denormalized
+
 class PickleDataLoader:
     def __init__(self, pkl_path, data_limit = None, include_tau = False):
         begin_idx                           = 1 if include_tau else None
@@ -54,22 +66,21 @@ class PickleDataLoader:
         data_length                         = None
         self.with_scaling                   = False
 
-        if 'dmp_y0_goal_w_unscaled' in self.data:
-            # print('dmp_outputs_unscaled')
-            self.dmp_y0_goal_w_unscaled         = self.data['dmp_y0_goal_w_unscaled'][:data_limit, begin_idx:]
-            self.tau                            = self.dmp_y0_goal_w_unscaled[0][0] if include_tau else 1
-            if data_length == None: data_length = len(self.dmp_y0_goal_w_unscaled)
+        if 'dmp_y0_goal_w' in self.data:
+            self.dmp_y0_goal_w         = self.data['dmp_y0_goal_w'][:data_limit, begin_idx:]
+            self.tau                            = self.dmp_y0_goal_w[0][0] if include_tau else 1
+            if data_length == None: data_length = len(self.dmp_y0_goal_w)
         if 'dmp_y0_goal_w_scaled' in self.data:
             self.dmp_y0_goal_w_scaled             = self.data['dmp_y0_goal_w_scaled'][:data_limit, begin_idx:]
             self.tau                            = self.dmp_y0_goal_w_scaled[0][0] if include_tau else 1
             if data_length == None: data_length = len(self.dmp_y0_goal_w_scaled)
 
-        if 'segmented_dict_dmp_outputs' in self.data:
-            self.segmented_dict_dmp_outputs     = self.data['segmented_dict_dmp_outputs'][:data_limit]
-            if data_length == None: data_length = len(self.segmented_dict_dmp_outputs)
-        if 'segmented_dict_dmp_types' in self.data:
-            self.segmented_dict_dmp_types       = self.data['segmented_dict_dmp_types'][:data_limit]
-            if data_length == None: data_length = len(self.segmented_dict_dmp_types)
+        if 'points_padded' in self.data:
+            self.points_padded                  = self.data['points_padded'][:data_limit]
+            if data_length == None: data_length = len(self.points_padded)
+        if 'segment_types_padded' in self.data:
+            self.segment_types_padded           = self.data['segment_types_padded'][:data_limit]
+            if data_length == None: data_length = len(self.segment_types_padded)
 
         if 'image' in self.data:
             self.images                         = self.data['image'][:data_limit] / 255
@@ -124,21 +135,21 @@ class PickleDataLoader:
                 inputs['image']                         = torch.from_numpy(self.images[idx]).float().to(DEVICE)
             if 'caption' in self.data:
                 inputs['caption']                       = self.captions[idx]
-            if 'dmp_y0_goal_w_unscaled' in self.data:
-                inputs['dmp_y0_goal_w_unscaled']        = torch.from_numpy(self.dmp_y0_goal_w_unscaled[idx][begin_idx:]).float().to(DEVICE)
+            if 'dmp_y0_goal_w' in self.data:
+                inputs['dmp_y0_goal_w']        = torch.from_numpy(self.dmp_y0_goal_w[idx][begin_idx:]).float().to(DEVICE)
             if 'dmp_y0_goal_w_scaled' in self.data:
                 inputs['dmp_y0_goal_w_scaled']          = torch.from_numpy(self.dmp_y0_goal_w_scaled[idx][begin_idx:]).float().to(DEVICE)
             self.combined_inputs.append(inputs)
 
             outputs = {}
-            if 'dmp_y0_goal_w_unscaled' in self.data:
-                outputs['dmp_y0_goal_w_unscaled']       = torch.from_numpy(self.dmp_y0_goal_w_unscaled[idx][begin_idx:]).float().to(DEVICE)
+            if 'dmp_y0_goal_w' in self.data:
+                outputs['dmp_y0_goal_w']       = torch.from_numpy(self.dmp_y0_goal_w[idx][begin_idx:]).float().to(DEVICE)
             if 'dmp_y0_goal_w_scaled' in self.data:
                 outputs['dmp_y0_goal_w_scaled']         = torch.from_numpy(self.dmp_y0_goal_w_scaled[idx][begin_idx:]).float().to(DEVICE)
-            if 'segmented_dict_dmp_outputs' in self.data:
-                outputs['segmented_dict_dmp_outputs']   = torch.from_numpy(self.segmented_dict_dmp_outputs[idx]).float().to(DEVICE)
-            if 'segmented_dict_dmp_types' in self.data:
-                outputs['segmented_dict_dmp_types']     = torch.from_numpy(self.segmented_dict_dmp_types[idx]).float().to(DEVICE)
+            if 'points_padded' in self.data:
+                outputs['points_padded']   = torch.from_numpy(self.points_padded[idx]).float().to(DEVICE)
+            if 'segment_types_padded' in self.data:
+                outputs['segment_types_padded']     = torch.from_numpy(self.segment_types_padded[idx]).float().to(DEVICE)
             if 'num_segments' in self.data:
                 outputs['num_segments']                 = torch.from_numpy(self.num_segments[idx]).float().to(DEVICE)
             if 'traj' in self.data:

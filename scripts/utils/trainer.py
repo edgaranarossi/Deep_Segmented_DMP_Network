@@ -7,6 +7,7 @@ from typing import List
 import copy
 from os.path import join
 from .soft_dtw_cuda import SoftDTW
+from .losses import DMPIntegrationMSE
 from matplotlib import pyplot as plt
 from datetime import datetime
 
@@ -31,6 +32,8 @@ class Trainer:
                 self.loss_fns.append(torch.nn.MSELoss())
             elif loss_type == 'SDTW':
                 self.loss_fns.append(SoftDTW(use_cuda=True, gamma=train_param.sdtw_gamma))
+            elif loss_type == 'DMPIntegrationMSE':
+                self.loss_fns.append(DMPIntegrationMSE(train_param = self.train_param))
 
         if self.train_param.optimizer_type == 'adam':
             self.optimizer = torch.optim.Adam(self.model.parameters(), 
@@ -160,6 +163,7 @@ class Trainer:
                     total_loss = torch.tensor(0.).to(DEVICE)
                     for i in range(len(self.output_mode)):
                         loss_fn = self.loss_fns[i]
+                        # print(preds[i].shape, outputs[self.output_mode[i]].shape)
                         loss = loss_fn(preds[i], outputs[self.output_mode[i]])
                         if len(loss.shape) > 0:
                             loss = loss.mean()
