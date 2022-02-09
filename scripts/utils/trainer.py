@@ -155,10 +155,6 @@ class Trainer:
                     self.optimizer.zero_grad()
 
                     preds = self.model(data)
-
-                    if plot_comparison_idx != None:
-                        if first_pred == None: first_pred = preds[0][plot_comparison_idx]
-                        if first_label == None: first_label = outputs[self.output_mode[0]][plot_comparison_idx]
                         
                     total_loss = torch.tensor(0.).to(DEVICE)
                     for i in range(len(self.output_mode)):
@@ -168,6 +164,14 @@ class Trainer:
                         if len(loss.shape) > 0:
                             loss = loss.mean()
                         total_loss = total_loss + loss
+
+                    if plot_comparison_idx != None:
+                        if first_pred == None: 
+                            if self.model_param.network_configuration == '2':
+                                first_pred = loss_fn.y_track[0][plot_comparison_idx]
+                            else:
+                                first_pred = preds[0][plot_comparison_idx]
+                        if first_label == None: first_label = outputs[self.output_mode[0]][plot_comparison_idx]
                         
                     losses.append(total_loss)
                     predictions.append(preds)
@@ -179,8 +183,12 @@ class Trainer:
 
             losses = tensor(losses).to(DEVICE)
 
-            if self.train_param.plot_interval != None and self.epoch % self.train_param.plot_interval == 0:
-                self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], preds[0][:self.train_param.plot_num])
+            if self.train_param.plot_interval != None and \
+               self.epoch % self.train_param.plot_interval == 0:
+                if self.model_param.network_configuration == '2':
+                    self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], loss_fn.y_track[0][:self.train_param.plot_num])
+                else:
+                    self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], preds[0][:self.train_param.plot_num])
             # print('Epoch', self.epoch, 'validation loss :',losses.mean())
 
             if plot_comparison_idx != None:

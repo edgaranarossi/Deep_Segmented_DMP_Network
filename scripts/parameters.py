@@ -18,8 +18,7 @@ class TrainingParameters:
         # self.dataset_dir = join(self.root_dir, 'data/pkl/random_lines_3')
         # self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_5_ay_4_dt_0.05_normal_n-bf_6_ay_6_dt_0.01_2022-02-05_04-15-34.pkl'
         self.dataset_dir = join(self.root_dir, 'data/pkl/shapes-8')
-        # self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_5_ay_4_dt_0.05_normal_n-bf_6_ay_6_dt_0.01_2022-02-05_04-13-23.pkl'
-        self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_1_ay_4_dt_0.05_normal_n-bf_200_ay_75_dt_0.01_2022-02-07_21-56-44.pkl'
+        self.dataset_name = 'image-dict_output-traj_N_100000_dict_n-bf_1_ay_4_dt_0.05_normal_n-bf_200_ay_75_dt_0.01_2022-02-09_01-26-12.pkl'
         self.dataset_path = join(self.dataset_dir,  self.dataset_name)
 
         self.model_param = ModelParameters()
@@ -46,14 +45,14 @@ class TrainingParameters:
         self.max_val_fail = 500
         self.validation_interval = 1
         self.log_interval = 1
-        if self.model_param.model in [CNNDMPNet, SegmentNumCNN]:
+        if self.model_param.network_configuration in ['1.1', '1.2']:
             self.plot_interval = None
         else:
             self.plot_interval = 1
         self.plot_num = 5
 
         # Data parameters
-        self.batch_size = 10
+        self.batch_size = 100
         self.training_ratio = 7
         self.validation_ratio = 2
         self.test_ratio = 1
@@ -87,7 +86,7 @@ class TrainingParameters:
 class ModelParameters:
     def __init__(self):
         # Network Parameters
-        self.image_dim = (1, 150, 150)
+        self.image_dim = (3, 150, 150)
 
         # Define hidden layers sizes (No need to define output layer size)
         # self.layer_sizes = [4096, 2048, 2048]
@@ -115,74 +114,74 @@ class ModelParameters:
         if self.network_configuration == '1.1':
             self.model = CNNDMPNet
 
-            self.input_mode     = ['image']
-            self.output_mode    = ['dmp_y0_goal_w_scaled']
-            self.loss_type      = ['MSE']
-            self.dmp_param.segments = None
+            self.input_mode             = ['image']
+            self.output_mode            = ['dmp_y0_goal_w_scaled']
+            self.loss_type              = ['MSE']
+
+            self.dmp_param.segments     = None
+            self.layer_sizes            = self.layer_sizes + \
+                                          [(self.dmp_param.n_bf * self.dmp_param.dof) + \
+                                           (2 * self.dmp_param.dof) +
+                                           (1 if self.dmp_param.tau == None else 0)]
+            self.dmp_param.timesteps = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
         elif self.network_configuration == '1.2':
             self.model = CNNDMPNet
 
-            self.input_mode     = ['image']
-            self.output_mode    = ['dmp_y0_goal_w']
-            self.loss_type      = ['MSE']
-            self.dmp_param.segments = None
+            self.input_mode             = ['image']
+            self.output_mode            = ['dmp_y0_goal_w']
+            self.loss_type              = ['MSE']
+
+            self.dmp_param.segments     = None
+            self.layer_sizes            = self.layer_sizes + \
+                                          [(self.dmp_param.n_bf * self.dmp_param.dof) + \
+                                           (2 * self.dmp_param.dof) +
+                                           (1 if self.dmp_param.tau == None else 0)]
+            self.dmp_param.timesteps    = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
         if self.network_configuration == '2':
             self.model = CNNDMPNet
 
-            self.input_mode     = ['image']
-            self.output_mode    = ['normal_dmp_traj']
-            self.loss_type      = ['DMPIntegrationMSE']
-            self.dmp_param.segments = None
+            self.input_mode             = ['image']
+            self.output_mode            = ['normal_dmp_traj']
+            self.loss_type              = ['DMPIntegrationMSE']
+
+            self.dmp_param.segments     = None
+            self.layer_sizes            = self.layer_sizes + \
+                                          [(self.dmp_param.n_bf * self.dmp_param.dof) + \
+                                           (2 * self.dmp_param.dof) +
+                                           (1 if self.dmp_param.tau == None else 0)]
+            self.dmp_param.timesteps    = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
         elif self.network_configuration == '3':
             self.model = FixedSegmentDictDMPNet
 
-            self.input_mode     = ['image']
-            self.output_mode    = ['traj_interpolated']
-            self.loss_type      = ['SDTW']
+            self.input_mode             = ['image']
+            self.output_mode            = ['traj_interpolated']
+            self.loss_type              = ['SDTW']
 
             assert self.dmp_param.segments != None
 
         elif self.network_configuration == '4':
             self.model = DynamicSegmentDictDMPNet
 
-            self.input_mode     = ['image']
-            self.output_mode    = ['points_padded', 'num_segments', 'segment_types_padded']
-            self.loss_type      = ['MSE', 'MSE', 'MSE']
+            self.input_mode             = ['image']
+            self.output_mode            = ['points_padded', 'num_segments', 'segment_types_padded']
+            self.loss_type              = ['MSE', 'MSE', 'MSE']
 
             assert self.dmp_param.segments != None
 
         elif self.network_configuration == '5':
             self.model = SegmentNumCNN
 
-            self.input_mode     = ['image']
-            self.output_mode    = ['num_segments']
-            self.loss_type      = ['MSE']
+            self.input_mode             = ['image']
+            self.output_mode            = ['num_segments']
+            self.loss_type              = ['MSE']
             
             assert self.dmp_param.segments != None
 
         else:
             raise ValueError('Wrong network configuration input')
-
-        ## Processed parameters # No need to manually modify
-        if self.dmp_param.segments != None:
-            self.dmp_param.ay = ones(self.dmp_param.segments, self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
-        else:
-            self.dmp_param.ay = ones(self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
-        if self.dmp_param.by == None:
-            self.dmp_param.by = self.dmp_param.ay / 4
-        else:
-            self.dmp_param.by = ones(self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.by
-
-        """
-        Calculate output layer size and add it to self.layer_sizes
-        """
-        if self.model == CNNDMPNet:
-            self.layer_sizes = self.layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
-        
-        self.dmp_param.timesteps = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
 class DMPParameters:
     def __init__(self):
@@ -285,7 +284,12 @@ class DMPParameters:
         self.segment_traj_length = int(1 / self.dt)
         # self.traj_dict = np.array(traj_dict, dtype = [('traj',object),('dmp_traj',object),('dmp',DMPs_discrete)])
         self.traj_dict = torch.from_numpy(np.array(self.traj_dict)).to(DEVICE)
-        # print(self.traj_dict.shape)
+
+        self.ay = ones(self.dof, 1).to(DEVICE) * self.ay
+        if self.by == None:
+            self.by = self.ay / 4
+        else:
+            self.by = ones(self.dof, 1).to(DEVICE) * self.by
         
 #%% Test
 # if __name__=='__main__':

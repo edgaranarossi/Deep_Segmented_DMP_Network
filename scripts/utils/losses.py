@@ -23,7 +23,7 @@ class DMPIntegrationMSE:
         self.integrateDMP(dmp_params)
         mse = torch.nn.MSELoss()
         loss = mse(self.y_track, dmp_traj)
-        return loss #, self.y_track
+        return loss
 
     def integrateDMP(self, dmp_params):
         self.splitDMPparameters(dmp_params)

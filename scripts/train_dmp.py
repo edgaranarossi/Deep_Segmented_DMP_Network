@@ -19,10 +19,10 @@ if __name__ == '__main__':
 
     train_param.writeLog('Importing ' + train_param.dataset_name + ' ...')
     file_data_loader = PickleDataLoader(train_param.dataset_path,
-                                        # data_limit = 1000,
+                                        data_limit = 5000,
                                         include_tau = (True if train_param.includes_tau and model_param.dmp_param.tau == None else False))
     train_param.writeLog(train_param.dataset_name + ' imported')
-
+#%%
     train_param.writeLog('Splitting dataset')
     data_loaders, scale = \
         file_data_loader.getDataLoader(data_ratio = train_param.data_ratio,

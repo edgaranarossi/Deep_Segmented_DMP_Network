@@ -243,7 +243,8 @@ class SegmentTrajectoryGenerator:
             if dmp_output_ay != None and dmp_output_bf != None and dmp_output_dt != None:
                 dmp = generate_dmps(np.array(parsed_shape), dmp_output_bf, dmp_output_ay, dmp_output_dt, False)
                 dmp_y0_goal_w.append(np.concatenate([dmp.y0.reshape(-1), dmp.goal.reshape(-1), dmp.w.reshape(-1)]))
-                dmp_traj.append(dmp.rollout())
+                y_track, _, _ = dmp.rollout()
+                dmp_traj.append(y_track)
             
             randomized_shapes.append(np.array(randomized_shape))
             randomized_dmp_traj.append(parsed_shape)

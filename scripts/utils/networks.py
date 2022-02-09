@@ -84,7 +84,7 @@ class CNNDMPNet(nn.Module):
             x = self.tanh(fc(x))
         # x = self.fc[-1](x)
         x = self.fc[-1](self.dropout(x))
-        return x
+        return [x]
 
 class FixedSegmentDictDMPNet(nn.Module):
     def __init__(self, train_param):

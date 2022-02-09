@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import pickle
 import sys
+import psutil
 sys.path.append('/home/edgar/rllab/tools/DMP/imednet')
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -67,11 +68,11 @@ class PickleDataLoader:
         self.with_scaling                   = False
 
         if 'dmp_y0_goal_w' in self.data:
-            self.dmp_y0_goal_w         = self.data['dmp_y0_goal_w'][:data_limit, begin_idx:]
+            self.dmp_y0_goal_w                  = self.data['dmp_y0_goal_w'][:data_limit, begin_idx:]
             self.tau                            = self.dmp_y0_goal_w[0][0] if include_tau else 1
             if data_length == None: data_length = len(self.dmp_y0_goal_w)
         if 'dmp_y0_goal_w_scaled' in self.data:
-            self.dmp_y0_goal_w_scaled             = self.data['dmp_y0_goal_w_scaled'][:data_limit, begin_idx:]
+            self.dmp_y0_goal_w_scaled           = self.data['dmp_y0_goal_w_scaled'][:data_limit, begin_idx:]
             self.tau                            = self.dmp_y0_goal_w_scaled[0][0] if include_tau else 1
             if data_length == None: data_length = len(self.dmp_y0_goal_w_scaled)
 
@@ -97,20 +98,16 @@ class PickleDataLoader:
             if data_length == None: data_length = len(self.cut_distance)
         if 'num_segments' in self.data:
             self.num_segments                   = np.array(self.data['num_segments']).reshape(-1, 1)
-            # print(self.num_segments.shape)
             if data_length == None: data_length = len(self.num_segments)
         if 'traj' in self.data:
-            self.traj                           = self.data['traj'][:data_limit] * 100
+            self.traj                           = self.data['traj'][:data_limit]# * 100
             if data_length == None: data_length = len(self.traj)
-        if 'dmp_traj_interpolated' in self.data:
-            self.traj_interpolated          = self.data['dmp_traj_interpolated'][:data_limit]
-            if data_length == None: data_length = len(self.traj_interpolated)
-        if 'dmp_traj' in self.data:
-            self.dmp_traj                       = self.data['dmp_traj'][:data_limit]
-            if data_length == None: data_length = len(self.dmp_traj)
-        if 'dmp_traj_padded' in self.data:
-            self.dmp_traj_padded                = self.data['dmp_traj_padded'][:data_limit]
-            if data_length == None: data_length = len(self.dmp_traj_padded)
+        if 'normal_dmp_traj' in self.data:
+            if len(self.data['normal_dmp_traj'].shape) == 4:
+                self.normal_dmp_traj                = self.data['normal_dmp_traj'][:data_limit, 0]
+            elif len(self.data['normal_dmp_traj'].shape) == 3:
+                self.normal_dmp_traj                = self.data['normal_dmp_traj']
+            if data_length == None: data_length = len(self.normal_dmp_traj)
         if 'segmented_dmp_traj' in self.data:
             self.segmented_dmp_traj             = self.data['segmented_dmp_traj'][:data_limit]
             if data_length == None: data_length = len(self.segmented_dmp_traj)
@@ -130,6 +127,8 @@ class PickleDataLoader:
         self.combined_outputs           = []
         
         for idx in range(data_length):
+            if psutil.virtual_memory().percent > 90:
+                raise MemoryError("Out of Memory")
             inputs = {}
             if 'image' in self.data:
                 inputs['image']                         = torch.from_numpy(self.images[idx]).float().to(DEVICE)
@@ -143,21 +142,21 @@ class PickleDataLoader:
 
             outputs = {}
             if 'dmp_y0_goal_w' in self.data:
-                outputs['dmp_y0_goal_w']       = torch.from_numpy(self.dmp_y0_goal_w[idx][begin_idx:]).float().to(DEVICE)
+                outputs['dmp_y0_goal_w']                = torch.from_numpy(self.dmp_y0_goal_w[idx][begin_idx:]).float().to(DEVICE)
             if 'dmp_y0_goal_w_scaled' in self.data:
                 outputs['dmp_y0_goal_w_scaled']         = torch.from_numpy(self.dmp_y0_goal_w_scaled[idx][begin_idx:]).float().to(DEVICE)
             if 'points_padded' in self.data:
-                outputs['points_padded']   = torch.from_numpy(self.points_padded[idx]).float().to(DEVICE)
+                outputs['points_padded']                = torch.from_numpy(self.points_padded[idx]).float().to(DEVICE)
             if 'segment_types_padded' in self.data:
-                outputs['segment_types_padded']     = torch.from_numpy(self.segment_types_padded[idx]).float().to(DEVICE)
+                outputs['segment_types_padded']         = torch.from_numpy(self.segment_types_padded[idx]).float().to(DEVICE)
             if 'num_segments' in self.data:
                 outputs['num_segments']                 = torch.from_numpy(self.num_segments[idx]).float().to(DEVICE)
             if 'traj' in self.data:
                 outputs['traj']                         = torch.from_numpy(self.traj[idx]).float().to(DEVICE)
             if 'dmp_traj_interpolated' in self.data:
-                outputs['traj_interpolated']        = torch.from_numpy(self.traj_interpolated[idx]).float().to(DEVICE)
-            if 'dmp_traj' in self.data:
-                outputs['dmp_traj']                     = torch.from_numpy(self.dmp_traj[idx]).float().to(DEVICE)
+                outputs['traj_interpolated']            = torch.from_numpy(self.traj_interpolated[idx]).float().to(DEVICE)
+            if 'normal_dmp_traj' in self.data:
+                outputs['normal_dmp_traj']              = torch.from_numpy(self.normal_dmp_traj[idx]).float().to(DEVICE)
             if 'dmp_traj_padded' in self.data:
                 outputs['dmp_traj_padded']              = torch.from_numpy(self.dmp_traj_padded[idx]).float().to(DEVICE)
             if 'segmented_dmp_traj' in self.data:
