@@ -1,5 +1,5 @@
 import torch
-from torch import ones, zeros, linspace, exp, clone, sum
+from torch import ones, zeros, linspace, exp, clone, sum, cos, sin, tensor, cat
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -19,17 +19,20 @@ class DMPIntegrationMSE:
         self.scale = self.dmp_param.scale
         self.timesteps = self.dmp_param.timesteps
 
-    def __call__(self, dmp_params, dmp_traj):
-        self.integrateDMP(dmp_params)
+    def __call__(self, dmp_params, dmp_traj = None, rot_deg = None):
+        if rot_deg == None:
+            rot_deg = tensor(0).to(DEVICE)
+        self.integrateDMP(dmp_params, rot_deg)
         mse = torch.nn.MSELoss()
-        loss = mse(self.y_track, dmp_traj)
-        return loss
+        if dmp_traj != None:
+            loss = mse(self.y_track, dmp_traj)
+            return loss
 
-    def integrateDMP(self, dmp_params):
+    def integrateDMP(self, dmp_params, rot_deg):
         self.splitDMPparameters(dmp_params)
         self.initializeDMP()
         for t in range(self.timesteps):
-            self.step(t)
+            self.step(t, rot_deg)
 
     def splitDMPparameters(self, dmp_params):
         self.batch_s = dmp_params.shape[0]
@@ -42,22 +45,22 @@ class DMPIntegrationMSE:
         self.x = ones(self.batch_s, 1, 1).to(DEVICE)
         self.c = exp(-self.cs_ax * linspace(0, self.cs_runtime, self.n_bf).reshape(-1, 1)).to(DEVICE)
         self.h = ones(self.n_bf, 1).to(DEVICE) * self.n_bf**1.5 / self.c / self.cs_ax
-        self.y = clone(self.y0)
+        self.y = clone(self.y0).to(DEVICE)
         self.dy = zeros(self.batch_s, self.dof, 1).to(DEVICE)
         self.ddy = zeros(self.batch_s, self.dof, 1).to(DEVICE)
         self.y_track = zeros(self.batch_s, self.timesteps, self.dof).to(DEVICE)
         self.dy_track = zeros(self.batch_s, self.timesteps, self.dof).to(DEVICE)
         self.ddy_track = zeros(self.batch_s, self.timesteps, self.dof).to(DEVICE)
 
-    def step(self, t):
+    def step(self, t, rot_deg):
         self.canonicalStep()
         psi = (exp(-self.h * (self.x - self.c)**2))
         f = self.frontTerm() * (self.w @ psi) / sum(psi, dim = 1).reshape(self.batch_s, 1, 1)
 
-        self.ddy = (self.ay * (self.by * (self.goal - self.y) - self.dy / self.tau) + f) * self.tau
+        self.ddy = (self.ay * (self.by * (self.goal - self.rotateCoord(self.y, self.y0, -rot_deg)) - self.dy / self.tau) + f) * self.tau
         self.dy = self.dy + (self.ddy * self.tau * self.dt)
-        self.y = self.y + (self.dy * self.dt)
-    
+        self.y = self.rotateCoord(self.rotateCoord(self.y, self.y0, -rot_deg) + (self.dy * self.dt), self.y0, rot_deg)
+
         self.y_track[:, t] = self.y.reshape(self.batch_s, self.dof)
         self.dy_track[:, t] = self.dy.reshape(self.batch_s, self.dof)
         self.ddy_track[:, t] = self.ddy.reshape(self.batch_s, self.dof)
@@ -68,3 +71,20 @@ class DMPIntegrationMSE:
     def frontTerm(self):
         self.term = self.x * (self.goal - self.y0)
         return self.term
+
+    def rotateCoord(self, y, y0, rot_deg):
+        px = y[:, 0]
+        py = y[:, 1]
+        
+        cx = y0[:, 0]
+        cy = y0[:, 1]
+        
+        new_x = cos(rot_deg).to(DEVICE) * (px-cx) - sin(rot_deg).to(DEVICE) * (py-cy) + cx
+        new_y = sin(rot_deg).to(DEVICE) * (px-cx) + cos(rot_deg).to(DEVICE) * (py-cy) + cy
+        
+        y_rot = cat([new_x, new_y], dim = 1).reshape(y.shape[0], self.dof, 1)
+        return y_rot
+
+
+
+        

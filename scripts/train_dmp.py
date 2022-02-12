@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     open(train_param.log_writer_path, 'w')
     writer = SummaryWriter(train_param.model_save_path+'/log')
-
+#%%
     train_param.writeLog('Importing ' + train_param.dataset_name + ' ...')
     file_data_loader = PickleDataLoader(train_param.dataset_path,
                                         data_limit = 5000,
@@ -39,6 +39,5 @@ if __name__ == '__main__':
     summary(model, model_param.image_dim, batch_size = train_param.batch_size)
     
     trainer = Trainer(model, train_param, train_param.model_save_path, train_param.log_writer_path, writer)
-#%%
     trainer.train(data_loaders)
     print('\nModel saved in '+ train_param.model_save_path)

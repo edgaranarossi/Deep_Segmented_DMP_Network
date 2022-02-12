@@ -2,7 +2,7 @@ import numpy as np
 # from numpy.core.fromnumeric import mean
 import torch
 import numpy as np
-from torch import mean, tensor
+from torch import mean, tensor, clone
 from typing import List
 import copy
 from os.path import join
@@ -34,6 +34,11 @@ class Trainer:
                 self.loss_fns.append(SoftDTW(use_cuda=True, gamma=train_param.sdtw_gamma))
             elif loss_type == 'DMPIntegrationMSE':
                 self.loss_fns.append(DMPIntegrationMSE(train_param = self.train_param))
+
+        if self.model_param.network_configuration in ['1', '2']:
+            self.dmp_integrator = DMPIntegrationMSE(train_param = self.train_param)
+            if self.model_param.network_configuration == '2':
+                self.dmp_integrator.scale = None
 
         if self.train_param.optimizer_type == 'adam':
             self.optimizer = torch.optim.Adam(self.model.parameters(), 
@@ -167,11 +172,19 @@ class Trainer:
 
                     if plot_comparison_idx != None:
                         if first_pred == None: 
-                            if self.model_param.network_configuration == '2':
-                                first_pred = loss_fn.y_track[0][plot_comparison_idx]
+                            if self.model_param.network_configuration in ['1', '2']:
+                                self.dmp_integrator(preds[0][plot_comparison_idx])
+                                first_pred = self.dmp_integrator.y_track
+                            elif self.model_param.network_configuration == '3':
+                                first_pred = self.loss_fns[0].y_track[plot_comparison_idx]
                             else:
                                 first_pred = preds[0][plot_comparison_idx]
-                        if first_label == None: first_label = outputs[self.output_mode[0]][plot_comparison_idx]
+                        if first_label == None: 
+                            if self.model_param.network_configuration in ['1', '2']:
+                                self.dmp_integrator(outputs[self.output_mode[0]][plot_comparison_idx])
+                                first_label = self.dmp_integrator.y_track
+                            else:
+                                first_label = outputs[self.output_mode[0]][plot_comparison_idx]
                         
                     losses.append(total_loss)
                     predictions.append(preds)
@@ -185,8 +198,14 @@ class Trainer:
 
             if self.train_param.plot_interval != None and \
                self.epoch % self.train_param.plot_interval == 0:
-                if self.model_param.network_configuration == '2':
-                    self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], loss_fn.y_track[0][:self.train_param.plot_num])
+                if self.model_param.network_configuration in ['1', '2']:
+                    self.dmp_integrator(outputs[self.output_mode[0]][:self.train_param.plot_num])
+                    output = clone(self.dmp_integrator.y_track)
+                    self.dmp_integrator(preds[0][:self.train_param.plot_num])
+                    pred = clone(self.dmp_integrator.y_track)
+                    self.plotTrajectory(output, pred)
+                elif self.model_param.network_configuration == '3':
+                    self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], self.loss_fns[0].y_track[:self.train_param.plot_num])
                 else:
                     self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], preds[0][:self.train_param.plot_num])
             # print('Epoch', self.epoch, 'validation loss :',losses.mean())
@@ -221,7 +240,7 @@ class Trainer:
 
     def plotTrajectory(self, original_traj, pred_traj):
         base_size = 6
-        fig, axs = plt.subplots(1, len(original_traj), figsize=(base_size*len(original_traj), base_size))
+        fig, axs = plt.subplots(2, len(original_traj), figsize=(base_size*len(original_traj), 2 * base_size))
         if self.epoch != 0: title = 'Trajectory Reconstruction - Epoch ' + str(self.epoch)
         else: title = ''
         fig.suptitle(title)
@@ -229,28 +248,33 @@ class Trainer:
         for i in range(len(original_traj)):
             output_np = original_traj[i].detach().cpu().numpy().reshape(-1, 2)
             pred_np = pred_traj[i].detach().cpu().numpy().reshape(-1, 2)
-            # print(axs[0], axs[1], axs[2])
-            if len(original_traj) > 1:
-                axs[i].plot(output_np[:, 0], output_np[:, 1], color = 'blue')
-                axs[i].scatter(output_np[:, 0], output_np[:, 1], color = 'blue')
-                axs[i].plot(pred_np[:, 0], pred_np[:, 1], color = 'r', ls=':')
-                axs[i].scatter(pred_np[:, 0], pred_np[:, 1], color = 'r')
-                axs[i].scatter(pred_np[0, 0], pred_np[0, 1], color = 'g')
-                # plt.title('Epoch ' + str(epoch) + ' | Loss = ' + str(loss))
-                axs[i].set_xlim(-2, 8)
-                axs[i].set_ylim(-2, 8)
-                axs[i].legend(['original', 'dmp'])
-            else:
-                axs.plot(output_np[:, 0], output_np[:, 1], color = 'blue')
-                axs.scatter(output_np[:, 0], output_np[:, 1], color = 'blue')
-                axs.plot(pred_np[:, 0], pred_np[:, 1], color = 'r', ls=':')
-                axs.scatter(pred_np[:, 0], pred_np[:, 1], color = 'r')
-                axs.scatter(pred_np[0, 0], pred_np[0, 1], color = 'g')
-                # plt.title('Epoch ' + str(epoch) + ' | Loss = ' + str(loss))
-                axs.set_xlim(-2, 8)
-                axs.set_ylim(-2, 8)
-                axs.legend(['original', 'dmp'])
-            # plt.axis('equal')
+            for j in range(2):
+                # print(axs[0], axs[1], axs[2])
+                if len(original_traj) > 1:
+                    axs[j][i].plot(output_np[:, 0], output_np[:, 1], color = 'blue')
+                    axs[j][i].scatter(output_np[:, 0], output_np[:, 1], color = 'blue')
+                    axs[j][i].plot(pred_np[:, 0], pred_np[:, 1], color = 'r', ls=':')
+                    axs[j][i].scatter(pred_np[:, 0], pred_np[:, 1], color = 'r')
+                    axs[j][i].scatter(pred_np[0, 0], pred_np[0, 1], color = 'g')
+                    axs[j][i].scatter(pred_np[-1, 0], pred_np[-1, 1], color = 'b')
+                    # plt.title('Epoch ' + str(epoch) + ' | Loss = ' + str(loss))
+                    if j == 0:
+                        axs[j][i].set_xlim(-2, 8)
+                        axs[j][i].set_ylim(-2, 8)
+                    axs[j][i].legend(['original', 'dmp'])
+                else:
+                    axs[j].plot(output_np[:, 0], output_np[:, 1], color = 'blue')
+                    axs[j].scatter(output_np[:, 0], output_np[:, 1], color = 'blue')
+                    axs[j].plot(pred_np[:, 0], pred_np[:, 1], color = 'r', ls=':')
+                    axs[j].scatter(pred_np[:, 0], pred_np[:, 1], color = 'r')
+                    axs[j].scatter(pred_np[0, 0], pred_np[0, 1], color = 'g')
+                    axs[j].scatter(pred_np[-1, 0], pred_np[-1, 1], color = 'b')
+                    # plt.title('Epoch ' + str(epoch) + ' | Loss = ' + str(loss))
+                    if j == 0:
+                        axs[j].set_xlim(-2, 8)
+                        axs[j].set_ylim(-2, 8)
+                    axs[j].legend(['original', 'dmp'])
+                # plt.axis('equal')
         plt.draw()
         plt.show(block=False)
 
