@@ -38,7 +38,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #         x = F.relu(F.max_pool2d(self.conv1(x), 2))
 #         x = F.relu(F.max_pool2d(self.conv2(x), 2))
 #         x = flatten(x, 1) # flatten all dimensions except batch
-#         return x.cuda()
+#         return x.to(DEVICE)
 
 #     def forward(self, x):
 #         x = self.forwardConv(x)
@@ -81,7 +81,7 @@ class SegmentedDMPNet(nn.Module):
         x = F.relu(F.max_pool2d(self.conv1(x), 2), inplace=False)
         x = F.relu(F.max_pool2d(self.conv2(x), 2), inplace=False)
         x = flatten(x, 1) # flatten all dimensions except batch
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         x = self.forwardConv(x)
