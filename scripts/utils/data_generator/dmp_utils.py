@@ -23,7 +23,7 @@ def generate_dmps(trajs, n_bf, ay, dt, segmented):
             dmps.append(dmp)
     return dmps
 
-def plot_dmp_trajectory(dmps, segmented, plot = True):
+def plot_dmp_trajectory(dmps, segmented, plot = True, external_force = None):
     y_tracks = []
     dy_tracks = []
     ddy_tracks = []
@@ -31,13 +31,17 @@ def plot_dmp_trajectory(dmps, segmented, plot = True):
     if not segmented:
         y_tracks, dy_tracks, ddy_tracks = dmps.rollout()
     elif segmented:
+        last_pos = dmps[0].y0
         for dmp in dmps:
-            y_track, dy_track, ddy_track = dmp.rollout()
+            dmp.y0 = last_pos
+            y_track, dy_track, ddy_track = dmp.rollout(external_force =  external_force)
+            last_pos = y_track[-1, :]
             y_tracks.append(y_track)
             dy_tracks.append(dy_track)
             ddy_tracks.append(ddy_track)
         y_tracks, dy_tracks, ddy_tracks = recombine_trajs(y_tracks, dy_tracks, ddy_tracks)
     if plot:
+        plt.plot(y_tracks[:, 0], y_tracks[:, 1], linewidth=2, color='r')
         plt.scatter(y_tracks[:, 0], y_tracks[:, 1], linewidth=2, color='r', ls=':')
         plt.show()
     return y_tracks, dy_tracks, ddy_tracks

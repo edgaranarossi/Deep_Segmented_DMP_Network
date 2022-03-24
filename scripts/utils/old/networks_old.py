@@ -106,7 +106,8 @@ class SegmentedDMPNet(nn.Module):
         2. Dynamic Movement Primitives: Learning Attractor Models for Motor Behaviors, Ijspeert et al, 2013
         3. pydmps, DeWolf, 2013, https://github.com/studywolf/pydmps
         """
-        dmp_param = self.model_param.dmp_param
+        model_param = self.model_param
+        dmp_param = model_param.dmp_param
         train_param = self.train_param
         batch_size_x = x.shape[0]
 
@@ -147,22 +148,22 @@ class SegmentedDMPNet(nn.Module):
         def genY0sGoalsFromSegmentsPoints():
             # print("Splitting segments into y0 and goal")
             # print(self.segment_points[:,:-1].shape)
-            self.y0s = self.segment_points[:,:-1].reshape(batch_size_x, dmp_param.segments, dmp_param.dof, 1)
-            self.goals = self.segment_points[:,1:].reshape(batch_size_x, dmp_param.segments, dmp_param.dof, 1)
+            self.y0s = self.segment_points[:,:-1].reshape(batch_size_x, model_param.segments, dmp_param.dof, 1)
+            self.goals = self.segment_points[:,1:].reshape(batch_size_x, model_param.segments, dmp_param.dof, 1)
             # self.y0s = clamp(self.y0s, min = 0, max = 1)
             # self.goals = clamp(self.goals, min = 0, max = 1)
 
         def initializeDMP():
-            self.x = ones(batch_size_x, dmp_param.segments, 1, 1).to(DEVICE)
+            self.x = ones(batch_size_x, model_param.segments, 1, 1).to(DEVICE)
             self.c = exp(-dmp_param.cs_ax * linspace(0, dmp_param.cs_runtime, dmp_param.n_bf).reshape(-1, 1)).to(DEVICE)
-            self.c = self.c.repeat(dmp_param.segments, 1, 1)
+            self.c = self.c.repeat(model_param.segments, 1, 1)
             self.h = ones(dmp_param.n_bf, 1).to(DEVICE) * dmp_param.n_bf**1.5 / self.c / dmp_param.cs_ax
             self.y = torch.clone(self.y0s)
-            self.dy = zeros(batch_size_x, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.ddy = zeros(batch_size_x, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.y_track_segment = zeros(batch_size_x, dmp_param.timesteps, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.dy_track_segment = zeros(batch_size_x, dmp_param.timesteps, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.ddy_track_segment = zeros(batch_size_x, dmp_param.timesteps, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.dy = zeros(batch_size_x, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.ddy = zeros(batch_size_x, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.y_track_segment = zeros(batch_size_x, dmp_param.timesteps, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.dy_track_segment = zeros(batch_size_x, dmp_param.timesteps, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.ddy_track_segment = zeros(batch_size_x, dmp_param.timesteps, model_param.segments, dmp_param.dof, 1).to(DEVICE)
 
         def integrate():
             for t in range(dmp_param.timesteps):
@@ -171,8 +172,8 @@ class SegmentedDMPNet(nn.Module):
         def step():
             canonicalStep()
             psi = (exp(-self.h * (self.x - self.c)**2))
-            f = zeros(batch_size_x, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            for segment in range(dmp_param.segments):
+            f = zeros(batch_size_x, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            for segment in range(model_param.segments):
                 f[:, segment] = frontTerm()[:, segment] * (self.weights[:, segment] @ psi[:, segment]) / sum(psi[:, segment], axis=1).reshape(-1, 1, 1)
                 
             self.ddy = (dmp_param.ay * (dmp_param.by * (self.goals - self.y) - self.dy / self.tau) + f) * self.tau

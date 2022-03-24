@@ -16,16 +16,29 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 train_param = TrainingParameters()
 loss_fn = DMPIntegrationMSE(train_param)
-
+#%
 # loss = loss_fn(ones(3, 404).to(DEVICE), ones(3, 100, 2).to(DEVICE))
 
-rot = 90
+rot = 0
 loss = loss_fn(X.float().to(DEVICE), 
                Y.float().to(DEVICE), 
                # rot_deg = deg2rad(torch.ones(X.shape[0], 1)*rot)).to(DEVICE)
                 rot_deg = None)
+#%%
 traj = loss_fn.y_track
 traj_np = traj.detach().cpu().numpy()
 idx = 7
 plt.plot(traj_np[idx, :, 0], traj_np[idx, :, 1])
+plt.scatter(traj_np[idx, :, 0], traj_np[idx, :, 1])
 plt.axis('equal')
+plt.show()
+#%
+dy = loss_fn.dy_track
+dy_np = dy.detach().cpu().numpy()
+# idx = 6
+plt.plot(range(dy_np.shape[1]), dy_np[idx, :, 0])
+plt.plot(range(dy_np.shape[1]), dy_np[idx, :, 1])
+plt.scatter(range(dy_np.shape[1]), dy_np[idx, :, 0])
+plt.scatter(range(dy_np.shape[1]), dy_np[idx, :, 1])
+plt.axis('equal')
+plt.show()

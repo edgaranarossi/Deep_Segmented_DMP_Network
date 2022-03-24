@@ -12,7 +12,7 @@ class Mapping:
     x_min = []
 
 class MatDataLoader:
-    def __init__(self, mat_path, data_limit = None, include_tau = False):
+    def __init__(self, mat_path, data_limit = None):
         data                            = sio.loadmat(mat_path)
 
         if data_limit is None:
@@ -34,11 +34,7 @@ class MatDataLoader:
 
         self.combined_inputs            = []
         self.combined_outputs           = []
-        if include_tau:
-            begin_idx = None
-        else:
-            begin_idx = 1
-        self.tau = self.dmp_outputs[0][0]
+        begin_idx = None
         for idx in range(len(self.images)):
             self.combined_inputs.append({
                 'image'                 : torch.from_numpy(self.images[idx]).float().to(DEVICE),
@@ -51,9 +47,6 @@ class MatDataLoader:
 
     def getData(self):
         return self.combined_inputs, self.combined_outputs
-
-    def getTau(self):
-        return self.tau
 
     def getDataLoader(self, data_ratio = [7, 2, 1], batch_size = 50):
         X_train, X_val, Y_train, Y_val  = train_test_split(

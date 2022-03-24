@@ -19,8 +19,8 @@ if __name__ == '__main__':
 #%%
     train_param.writeLog('Importing ' + train_param.dataset_name + ' ...')
     file_data_loader = PickleDataLoader(train_param.dataset_path,
-                                        data_limit = 5000,
-                                        include_tau = (True if train_param.includes_tau and model_param.dmp_param.tau == None else False))
+                                        data_limit = None,
+                                        keys_to_normalize = model_param.keys_to_normalize)
     train_param.writeLog(train_param.dataset_name + ' imported')
 #%%
     train_param.writeLog('Splitting dataset')
@@ -33,11 +33,12 @@ if __name__ == '__main__':
     train_param.writeLog('Saving training parameters')
     pkl.dump(train_param, open(join(train_param.model_save_path, "train-model-dmp_param.pkl"),"wb"))
     train_param.writeLog('Saved as ' + join(train_param.model_save_path, "train-model-dmp_param.pkl"))
-
+#%%
     model = model_param.model(train_param)
     train_param.writeInitLog(model)
-    summary(model, model_param.image_dim, batch_size = train_param.batch_size)
+    # summary(model, model_param.image_dim, batch_size = train_param.batch_size)
     
     trainer = Trainer(model, train_param, train_param.model_save_path, train_param.log_writer_path, writer)
+#%%
     trainer.train(data_loaders)
     print('\nModel saved in '+ train_param.model_save_path)

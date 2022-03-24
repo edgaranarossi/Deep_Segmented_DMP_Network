@@ -82,7 +82,7 @@ class ModelParameters:
         ## Processed parameters # No need to manually modify
         # Fill DMP None
         self.dmp_param.dof = len(self.image_dim) - 1
-        self.dmp_param.ay = ones(self.dmp_param.segments, self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
+        self.dmp_param.ay = ones(self.model_param.segments, self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
         if self.dmp_param.by == None:
             self.dmp_param.by = self.dmp_param.ay / 4
         else:
@@ -91,20 +91,20 @@ class ModelParameters:
         """
         Calculate output layer size and add it to self.layer_sizes
         """
-        if self.dmp_param.segments == None:
+        if self.model_param.segments == None:
             self.layer_sizes = self.layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
-        elif self.dmp_param.segments > 0:
-            self.max_segmentsment_points = self.dmp_param.segments + 1
-            self.max_segmentsment_weights = self.dmp_param.segments
+        elif self.model_param.segments > 0:
+            self.max_segmentsment_points = self.model_param.segments + 1
+            self.max_segmentsment_weights = self.model_param.segments
             self.len_segment_points = self.max_segmentsment_points * self.dmp_param.dof
             self.len_segment_weights = self.max_segmentsment_weights * self.dmp_param.dof * self.dmp_param.n_bf
             self.layer_sizes = self.layer_sizes +\
                                 [(1 if self.dmp_param.tau == None else 0) +\
                                 self.len_segment_points +\
                                 self.len_segment_weights]
-            # self.dmp_param.dt = self.dmp_param.dt * self.dmp_param.segments
+            # self.dmp_param.dt = self.dmp_param.dt * self.model_param.segments
         else:
-            raise ValueError('self.dmp_param.segments must be either None or > 0')
+            raise ValueError('self.model_param.segments must be either None or > 0')
         self.dmp_param.timesteps = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
 class SegmentedDMPNet(nn.Module):
@@ -193,8 +193,8 @@ class SegmentedDMPNet(nn.Module):
         def genY0sGoalsFromSegmentsPoints():
             # print("Splitting segments into y0 and goal")
             # print(self.segment_points[:,:-1].shape)
-            self.y0s = self.segment_points[:,:-1].reshape(batch_size_x, dmp_param.segments, dmp_param.dof, 1)
-            self.goals = self.segment_points[:,1:].reshape(batch_size_x, dmp_param.segments, dmp_param.dof, 1)
+            self.y0s = self.segment_points[:,:-1].reshape(batch_size_x, model_param.segments, dmp_param.dof, 1)
+            self.goals = self.segment_points[:,1:].reshape(batch_size_x, model_param.segments, dmp_param.dof, 1)
             self.y0s = clamp(self.y0s, min = 0, max = 1)
             self.goals = clamp(self.goals, min = 0, max = 1)
             # print('y0s', self.y0s[0][:5])
@@ -202,16 +202,16 @@ class SegmentedDMPNet(nn.Module):
             # print()
 
         def initializeDMP():
-            self.x = ones(batch_size_x, dmp_param.segments, 1, 1).to(DEVICE)
+            self.x = ones(batch_size_x, model_param.segments, 1, 1).to(DEVICE)
             self.c = exp(-dmp_param.cs_ax * linspace(0, dmp_param.cs_runtime, dmp_param.n_bf).reshape(-1, 1)).to(DEVICE)
-            self.c = self.c.repeat(dmp_param.segments, 1, 1)
+            self.c = self.c.repeat(model_param.segments, 1, 1)
             self.h = ones(dmp_param.n_bf, 1).to(DEVICE) * dmp_param.n_bf**1.5 / self.c / dmp_param.cs_ax
             self.y = torch.clone(self.y0s)
-            self.dy = zeros(batch_size_x, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.ddy = zeros(batch_size_x, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.y_track_segment = zeros(batch_size_x, dmp_param.timesteps, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.dy_track_segment = zeros(batch_size_x, dmp_param.timesteps, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            self.ddy_track_segment = zeros(batch_size_x, dmp_param.timesteps, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.dy = zeros(batch_size_x, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.ddy = zeros(batch_size_x, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.y_track_segment = zeros(batch_size_x, dmp_param.timesteps, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.dy_track_segment = zeros(batch_size_x, dmp_param.timesteps, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            self.ddy_track_segment = zeros(batch_size_x, dmp_param.timesteps, model_param.segments, dmp_param.dof, 1).to(DEVICE)
 
         def integrate():
             for t in range(dmp_param.timesteps):
@@ -220,8 +220,8 @@ class SegmentedDMPNet(nn.Module):
         def step():
             canonicalStep()
             psi = (exp(-self.h * (self.x - self.c)**2)).double()
-            f = zeros(batch_size_x, dmp_param.segments, dmp_param.dof, 1).to(DEVICE)
-            for segment in range(dmp_param.segments):
+            f = zeros(batch_size_x, model_param.segments, dmp_param.dof, 1).to(DEVICE)
+            for segment in range(model_param.segments):
                 f[:, segment] = frontTerm()[:, segment] * (self.weights[:, segment] @ psi[:, segment]) / sum(psi[:, segment], axis=1).reshape(-1, 1, 1)
                 
             self.ddy = (dmp_param.ay * (dmp_param.by * (self.goals - self.y) - self.dy / self.tau) + f) * self.tau

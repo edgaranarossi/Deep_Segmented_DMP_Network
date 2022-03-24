@@ -1,8 +1,7 @@
-import numpy as np
 # from numpy.core.fromnumeric import mean
 import torch
 import numpy as np
-from torch import mean, tensor, clone
+from torch import mean, tensor, clone, zeros, ones, cat, clamp
 from typing import List
 import copy
 from os.path import join
@@ -10,6 +9,10 @@ from .soft_dtw_cuda import SoftDTW
 from .losses import DMPIntegrationMSE
 from matplotlib import pyplot as plt
 from datetime import datetime
+import psutil
+from .pydmps_torch import DMPs_discrete_torch
+from PIL import Image, ImageOps
+from multiprocessing import Process
 
 torch.autograd.set_detect_anomaly(True)
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,6 +23,8 @@ class Trainer:
         self.model = model
         self.train_param = train_param
         self.model_param = self.train_param.model_param
+        self.dmp_param   = self.model_param.dmp_param
+        self.input_mode = self.model_param.input_mode
         self.output_mode = self.model_param.output_mode
         self.save_path = save_path
         self.LOG_WRITER_PATH = log_writer_path
@@ -39,6 +44,13 @@ class Trainer:
             self.dmp_integrator = DMPIntegrationMSE(train_param = self.train_param)
             if self.model_param.network_configuration == '2':
                 self.dmp_integrator.scale = None
+        elif self.model_param.network_configuration in ['10', '11', '12', '13', '15', '16']:
+            self.dmp_integrator = DMPs_discrete_torch(n_dmps = self.dmp_param.dof, 
+                                                      n_bfs = self.dmp_param.n_bf, 
+                                                      ay = self.dmp_param.ay, 
+                                                      dt = self.dmp_param.dt)
+            self.scaler = self.dmp_param.scale
+            
 
         if self.train_param.optimizer_type == 'adam':
             self.optimizer = torch.optim.Adam(self.model.parameters(), 
@@ -140,12 +152,15 @@ class Trainer:
                 preds = self.model(data)
                 
                 total_loss = torch.tensor(0.).to(DEVICE)
+                loss_str = 'Train Loss'
                 for i in range(len(self.output_mode)):
                     loss_fn = self.loss_fns[i]
                     loss = loss_fn(preds[i], outputs[self.output_mode[i]])
                     if len(loss.shape) > 0:
                         loss = loss.mean()
+                    loss_str += ' | L' + str(i+1) + ': ' + str(np.round(loss.item(), 5).item())
                     total_loss = total_loss + loss
+                # print(loss_str)
 
                 total_loss.backward()
                 self.optimizer.step()
@@ -162,13 +177,16 @@ class Trainer:
                     preds = self.model(data)
                         
                     total_loss = torch.tensor(0.).to(DEVICE)
+                    loss_str = 'Val Loss'
                     for i in range(len(self.output_mode)):
                         loss_fn = self.loss_fns[i]
                         # print(preds[i].shape, outputs[self.output_mode[i]].shape)
                         loss = loss_fn(preds[i], outputs[self.output_mode[i]])
                         if len(loss.shape) > 0:
                             loss = loss.mean()
+                        loss_str += ' | L' + str(i+1) + ': ' + str(np.round(loss.item(), 5))
                         total_loss = total_loss + loss
+                    # print(loss_str)
 
                     if plot_comparison_idx != None:
                         if first_pred == None: 
@@ -206,8 +224,204 @@ class Trainer:
                     self.plotTrajectory(output, pred)
                 elif self.model_param.network_configuration == '3':
                     self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], self.loss_fns[0].y_track[:self.train_param.plot_num])
+                elif self.model_param.network_configuration == '10':
+                    # print(data.shape)
+                    img = data['image'][0].detach().cpu().numpy().reshape(self.model_param.image_dim[1],
+                                                                 self.model_param.image_dim[2],
+                                                                 self.model_param.image_dim[0])
+                    img = np.flipud(img)
+
+                    rescaled_pred = []
+                    rescaled_label = []
+                    for idx, key in enumerate(self.model_param.keys_to_normalize):
+                        rescaled_pred.append(self.scaler[key].denormalize(preds[idx][0]))
+                        rescaled_label.append(self.scaler[key].denormalize(outputs[self.output_mode[idx]][0]))
+                    
+                    num_segments_pred = int(rescaled_pred[0].reshape(1).item())
+                    num_segments_label = int(rescaled_label[0].reshape(1).item())
+
+                    self.dmp_integrator.y0      = rescaled_label[1].reshape(1, self.dmp_param.dof, 1)
+                    self.dmp_integrator.goal    = rescaled_label[2][0].reshape(1, self.dmp_param.dof, 1)
+                    self.dmp_integrator.w       = rescaled_label[3].reshape(1, self.dmp_param.dof, self.dmp_param.n_bf)
+                    y_label, _, _ = self.dmp_integrator.rollout()
+
+                    self.dmp_integrator.y0      = rescaled_pred[1].reshape(1, self.dmp_param.dof, 1)
+                    self.dmp_integrator.goal    = rescaled_pred[2][0].reshape(1, self.dmp_param.dof, 1)
+                    self.dmp_integrator.w       = rescaled_pred[3].reshape(1, self.dmp_param.dof, self.dmp_param.n_bf)
+                    y_pred, _, _ = self.dmp_integrator.rollout()
+
+                    y_label = cat([y_label[0], rescaled_label[2][1:num_segments_label]])
+                    y_pred = cat([y_pred[0], rescaled_pred[2][1:num_segments_pred]])
+
+                    padding = 3
+                    multiplier = 28
+                    y_label = ((y_label.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+                    y_pred = ((y_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+
+                    self.plot(y_pred, y_label, img = img)
+                elif self.model_param.network_configuration in ['11', '13', '15']:
+                    img = data['image'][0].detach().cpu().numpy().reshape(self.model_param.image_dim[1],
+                                                                 self.model_param.image_dim[2],
+                                                                 self.model_param.image_dim[0])
+                    img = np.flipud(img)
+                    rescaled_pred = []
+                    rescaled_label = []
+                    for idx, key in enumerate(self.model_param.keys_to_normalize):
+                        rescaled_pred.append(self.scaler[key].denormalize(preds[idx][0]))
+                        rescaled_label.append(self.scaler[key].denormalize(outputs[self.output_mode[idx]][0]))
+
+                    num_segments_pred = int(clamp(torch.round(rescaled_pred[0]).reshape(1), max = self.model_param.max_segments).item())
+                    num_segments_label = int(clamp(torch.round(rescaled_label[0]).reshape(1), max = self.model_param.max_segments).item())
+                    y_label = zeros(num_segments_label, int(1 / self.dmp_param.dt), self.dmp_param.dof).to(DEVICE)
+                    y_pred = zeros(num_segments_pred, int(1 / self.dmp_param.dt), self.dmp_param.dof).to(DEVICE)
+
+                    all_pos_pred = cat([rescaled_pred[1].reshape(1, self.dmp_param.dof, 1), rescaled_pred[2].reshape(-1, self.dmp_param.dof, 1)], dim = 0)
+                    all_pos_label = cat([rescaled_label[1].reshape(1, self.dmp_param.dof, 1), rescaled_label[2].reshape(-1, self.dmp_param.dof, 1)], dim = 0)
+
+                    y0s_label = all_pos_label[:-1]
+                    y0s_pred = all_pos_pred[:-1]
+                    goals_label = all_pos_label[1:]
+                    goals_pred = all_pos_pred[1:]
+
+                    dmp_label = DMPs_discrete_torch(n_dmps = self.dmp_param.dof, 
+                                                    n_bfs = self.dmp_param.n_bf, 
+                                                    ay = self.dmp_param.ay, 
+                                                    dt = self.dmp_param.dt)
+                    # dmp_label.y0 = rescaled_label[1].reshape(1, self.dmp_param.dof, 1)
+                    dmp_label.y0        = y0s_label[:num_segments_label]
+                    dmp_label.goal      = goals_label[:num_segments_label]
+                    dmp_label.w         = rescaled_label[3][:num_segments_label].reshape(num_segments_label, self.dmp_param.dof, self.dmp_param.n_bf)
+                    y_track_label, _, _ = dmp_label.rollout()
+
+                    dmp_pred = DMPs_discrete_torch(n_dmps = self.dmp_param.dof, 
+                                                   n_bfs = self.dmp_param.n_bf, 
+                                                   ay = self.dmp_param.ay, 
+                                                   dt = self.dmp_param.dt)
+                    # dmp_pred.y0 = rescaled_pred[1].reshape(1, self.dmp_param.dof, 1)
+                    dmp_pred.y0         = y0s_pred[:num_segments_pred]
+                    dmp_pred.goal       = goals_pred[:num_segments_pred]
+                    dmp_pred.w          = rescaled_pred[3][:num_segments_pred].reshape(num_segments_pred, self.dmp_param.dof, self.dmp_param.n_bf)
+                    y_track_pred, _, _  = dmp_pred.rollout()
+
+                    # for i in range(num_segments_label):
+                    #     dmp_label.goal      = rescaled_label[2][i].reshape(1, self.dmp_param.dof, 1)
+                    #     dmp_label.w         = rescaled_label[3][i].reshape(1, self.dmp_param.dof, self.dmp_param.n_bf)
+                    #     y_track_label, _, _ = dmp_label.rollout()
+                    #     y_label[i]          = y_track_label.reshape(-1, self.dmp_param.dof)
+                    #     dmp_label.y0        = y_label[i, -1].reshape(1, self.dmp_param.dof, 1)
+
+                    #     if i < num_segments_pred:
+                    #         dmp_pred.goal       = rescaled_pred[2][i].reshape(1, self.dmp_param.dof, 1)
+                    #         dmp_pred.w          = rescaled_pred[3][i].reshape(1, self.dmp_param.dof, self.dmp_param.n_bf)
+                    #         y_track_pred, _, _  = dmp_pred.rollout()
+                    #         y_pred[i]           = y_track_pred.reshape(-1, self.dmp_param.dof)
+                    #         dmp_pred.y0         = y_pred[i, -1].reshape(1, self.dmp_param.dof, 1)
+
+                    y_label = y_track_label.reshape(-1, self.dmp_param.dof)
+                    y_pred = y_track_pred.reshape(-1, self.dmp_param.dof)
+
+                    padding = 3
+                    multiplier = 28
+                    y_label = ((y_label.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+                    y_pred = ((y_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+                    all_pos_pred_np = ((all_pos_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+
+                    plt.scatter(all_pos_pred_np[:num_segments_pred + 1, 0], all_pos_pred_np[:num_segments_pred + 1, 1], c = 'c', zorder = 6)
+                    # print(img.shape)
+                    self.plot(y_pred, y_label, img = img)
+                elif self.model_param.network_configuration in ['16']:
+                    img = data['image'][0].detach().cpu().numpy().reshape(self.model_param.image_dim[1],
+                                                                 self.model_param.image_dim[2],
+                                                                 self.model_param.image_dim[0])
+                    img = np.flipud(img)
+                    rescaled_pred = []
+                    rescaled_label = []
+                    for idx, key in enumerate(self.model_param.keys_to_normalize):
+                        rescaled_pred.append(self.scaler[key].denormalize(preds[idx][0]))
+                        rescaled_label.append(self.scaler[key].denormalize(outputs[self.output_mode[idx]][0]))
+
+                    num_segments_pred = 1
+                    num_segments_label = 1
+                    y_label = zeros(num_segments_label, int(1 / self.dmp_param.dt), self.dmp_param.dof).to(DEVICE)
+                    y_pred = zeros(num_segments_pred, int(1 / self.dmp_param.dt), self.dmp_param.dof).to(DEVICE)
+
+                    all_pos_pred = cat([rescaled_pred[0].reshape(1, self.dmp_param.dof, 1), rescaled_pred[1].reshape(-1, self.dmp_param.dof, 1)], dim = 0)
+                    all_pos_label = cat([rescaled_label[0].reshape(1, self.dmp_param.dof, 1), rescaled_label[1].reshape(-1, self.dmp_param.dof, 1)], dim = 0)
+
+                    y0s_label = all_pos_label[:-1]
+                    y0s_pred = all_pos_pred[:-1]
+                    goals_label = all_pos_label[1:]
+                    goals_pred = all_pos_pred[1:]
+
+                    dmp_label = DMPs_discrete_torch(n_dmps = self.dmp_param.dof, 
+                                                    n_bfs = self.dmp_param.n_bf, 
+                                                    ay = self.dmp_param.ay, 
+                                                    dt = self.dmp_param.dt)
+                    # dmp_label.y0 = rescaled_label[1].reshape(1, self.dmp_param.dof, 1)
+                    dmp_label.y0        = y0s_label[:num_segments_label]
+                    dmp_label.goal      = goals_label[:num_segments_label]
+                    dmp_label.w         = rescaled_label[2][:num_segments_label].reshape(num_segments_label, self.dmp_param.dof, self.dmp_param.n_bf)
+                    y_track_label, _, _ = dmp_label.rollout()
+
+                    dmp_pred = DMPs_discrete_torch(n_dmps = self.dmp_param.dof, 
+                                                   n_bfs = self.dmp_param.n_bf, 
+                                                   ay = self.dmp_param.ay, 
+                                                   dt = self.dmp_param.dt)
+                    # dmp_pred.y0 = rescaled_pred[1].reshape(1, self.dmp_param.dof, 1)
+                    dmp_pred.y0         = y0s_pred[:num_segments_pred]
+                    dmp_pred.goal       = goals_pred[:num_segments_pred]
+                    dmp_pred.w          = rescaled_pred[2][:num_segments_pred].reshape(num_segments_pred, self.dmp_param.dof, self.dmp_param.n_bf)
+                    y_track_pred, _, _  = dmp_pred.rollout()
+
+                    # for i in range(num_segments_label):
+                    #     dmp_label.goal      = rescaled_label[2][i].reshape(1, self.dmp_param.dof, 1)
+                    #     dmp_label.w         = rescaled_label[3][i].reshape(1, self.dmp_param.dof, self.dmp_param.n_bf)
+                    #     y_track_label, _, _ = dmp_label.rollout()
+                    #     y_label[i]          = y_track_label.reshape(-1, self.dmp_param.dof)
+                    #     dmp_label.y0        = y_label[i, -1].reshape(1, self.dmp_param.dof, 1)
+
+                    #     if i < num_segments_pred:
+                    #         dmp_pred.goal       = rescaled_pred[2][i].reshape(1, self.dmp_param.dof, 1)
+                    #         dmp_pred.w          = rescaled_pred[3][i].reshape(1, self.dmp_param.dof, self.dmp_param.n_bf)
+                    #         y_track_pred, _, _  = dmp_pred.rollout()
+                    #         y_pred[i]           = y_track_pred.reshape(-1, self.dmp_param.dof)
+                    #         dmp_pred.y0         = y_pred[i, -1].reshape(1, self.dmp_param.dof, 1)
+
+                    y_label = y_track_label.reshape(-1, self.dmp_param.dof)
+                    y_pred = y_track_pred.reshape(-1, self.dmp_param.dof)
+
+                    padding = 3
+                    multiplier = 28
+                    y_label = ((y_label.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+                    y_pred = ((y_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+                    all_pos_pred_np = ((all_pos_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+
+                    plt.scatter(all_pos_pred_np[:num_segments_pred + 1, 0], all_pos_pred_np[:num_segments_pred + 1, 1], c = 'c', zorder = 6)
+                    # print(img.shape)
+                    self.plot(y_pred, y_label, img = img)
+                elif self.model_param.network_configuration == '12':
+                    img = data['image'][0].detach().cpu().numpy().reshape(self.model_param.image_dim[1],
+                                                                 self.model_param.image_dim[2],
+                                                                 self.model_param.image_dim[0])
+                    img = np.flipud(img)
+                    rescaled_pred = []
+                    rescaled_label = []
+                    for idx, key in enumerate(self.model_param.keys_to_normalize):
+                        rescaled_pred.append(self.scaler[key].denormalize(preds[idx][0]))
+                        rescaled_label.append(self.scaler[key].denormalize(outputs[self.output_mode[idx]][0]))
+                    
+                    y_label = cat([rescaled_label[0].reshape(1, self.dmp_param.dof), rescaled_label[1]], dim = 0)
+                    y_pred = cat([rescaled_pred[0].reshape(1, self.dmp_param.dof), rescaled_pred[1]], dim = 0)
+
+                    padding = 3
+                    multiplier = 28
+                    y_label = ((y_label.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+                    y_pred = ((y_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, self.dmp_param.dof)
+
+                    self.plot(y_pred, y_label, img = img)
                 else:
-                    self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], preds[0][:self.train_param.plot_num])
+                    # self.plotTrajectory(outputs[self.output_mode[0]][:self.train_param.plot_num], preds[0][:self.train_param.plot_num])
+                    pass
             # print('Epoch', self.epoch, 'validation loss :',losses.mean())
 
             if plot_comparison_idx != None:
@@ -215,7 +429,17 @@ class Trainer:
 
         return predictions, losses
 
+    def plot(self, y_pred, y_label, img = None):
+        if img.any() != None: plt.imshow(img, origin = 'lower', cmap='gray')
+        plt.plot(y_label[:, 0], y_label[:, 1], lw = 5, c = 'g')
+        plt.scatter(y_pred[:, 0], y_pred[:, 1], c = 'r', zorder = 5)
+        plt.title('Epoch ' + str(self.epoch))
+        plt.show()
+
     def checkStoppingCondition(self):
+        if psutil.virtual_memory().percent > 95:
+            self.train = False
+            self.train_param.writeLog('\nStopping Reason : Out of Memory')
         if self.train_param.max_epoch != None and self.epoch >= self.train_param.max_epoch:
             self.train = False
             self.train_param.writeLog('\nStopping Reason : Maximum epoch reached')

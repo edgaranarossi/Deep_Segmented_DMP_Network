@@ -1,4 +1,4 @@
-from utils.dataset_importer import MatDataLoader, PickleDataLoader, Scale
+from utils.dataset_importer import MatDataLoader, PickleDataLoader, DMPParamScale
 from utils.networks import CNNDMPNet, NewCNNDMPNet, SegmentedDMPNet, DMPIntegratorNet
 from utils.trainer import Trainer
 from parameters import TrainingParameters, ModelParameters
@@ -60,7 +60,6 @@ if __name__ == '__main__':
     model = DMPIntegratorNet(train_param, input_size, output_size, model_param.layer_sizes)
     train_param.loss_type = 'MSE'
     writeInitLog()
-    # file_data_loader = MatDataLoader(FILE_PATH, include_tau = False if model_param.dmp_param.tau == None else True)
     writeLog('Importing ' + FILE_NAME + ' ...')
     file_data_loader = PickleDataLoader(FILE_PATH, data_limit = None)
     writeLog(FILE_NAME + ' imported')

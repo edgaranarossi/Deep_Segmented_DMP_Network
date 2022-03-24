@@ -5,7 +5,7 @@ import pickle as pkl
 from os.path import join, isdir, dirname
 from os import getcwd, makedirs
 from datetime import datetime
-from utils.dataset_importer import Scale
+from utils.dataset_importer import DMPParamScale
 
 def generate_shape_segments(shapes,
                             segment_types,
@@ -166,7 +166,7 @@ while cur_num < start_num + num_dataset:
         del checkpoints[0]
 
 dmp_y0_goal_w = np.array(dmp_y0_goal_w)
-scale = Scale([dmp_y0_goal_w[:,:4].min(), dmp_y0_goal_w[:,:4].max()], [dmp_y0_goal_w[:,4:].min(), dmp_y0_goal_w[:,4:].max()])
+scale = DMPParamScale([dmp_y0_goal_w[:,:4].min(), dmp_y0_goal_w[:,:4].max()], [dmp_y0_goal_w[:,4:].min(), dmp_y0_goal_w[:,4:].max()])
 dmp_y0_goal_w_scaled = scale.normalize(dmp_y0_goal_w)
 print('Generated', len(images), '/', int(num_dataset * len(shapes)))
 
@@ -184,7 +184,9 @@ dataset = {'image'                      : np.array(images),
            'normal_dmp_bf'              : dmp_output_bf,
            'normal_dmp_ay'              : dmp_output_ay,
            'normal_dmp_dt'              : dmp_output_dt,
-           'normal_dmp_traj'            : np.array(dmp_traj),
+           'normal_dmp_y_track'         : np.array(dmp_traj),
+        #    'normal_dmp_dy_track'        : np.array(dmp_traj),
+        #    'normal_dmp_ddy_track'       : np.array(dmp_traj),
            'num_segments'               : num_segs,
            'dmp_y0_goal_w'              : dmp_y0_goal_w,
            'dmp_y0_goal_w_scaled'       : dmp_y0_goal_w_scaled,

@@ -1,5 +1,5 @@
 from utils.data_generator import generate_carrot, generate_random_dmp, generate_cutting_trajectory, split_traj_into_segment, generate_dmps, trajpoints2dmp, generate_random_rotated_curves_dmp, SegmentTrajectoryGenerator
-from utils.dataset_importer import Scale
+from utils.dataset_importer import DMPParamScale
 import numpy as np
 import pickle as pkl
 from os.path import join
@@ -161,7 +161,7 @@ print('Generated', num_dataset, '/', num_dataset)
 X_np = np.array(X)[:num_dataset]
 Y_np = np.array(Y)[:num_dataset]
 original_trajs = original_trajs[:num_dataset]
-scale = Scale([0.0, 100.0], w_limit)
+scale = DMPParamScale([0.0, 100.0], w_limit)
 
 # assert(X_np[:, 4:].min() >= scale.w_old.min)
 # assert(X_np[:, 4:].max() <= scale.w_old.max)
