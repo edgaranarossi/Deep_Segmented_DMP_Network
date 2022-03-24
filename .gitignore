@@ -5,3 +5,4 @@ scripts/__pycache__/
 scripts/utils/__pycache__/
 scripts/utils/data_generator/__pycache__/
 scripts/utils/data_generator/utils/__pycache__/
+test_model/
