@@ -5,7 +5,7 @@ from os import makedirs, getcwd, chdir
 from os.path import join, isdir, dirname
 import pickle as pkl
 import torch
-ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Custom_Deep-DMP'
+ROOT_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
 chdir(ROOT_DIR)
 
 MODEL_NAME = 'Model_DMP_Integrator_2022-01-07_20-51-40'
@@ -15,7 +15,7 @@ PARAM_PKL_PATH = join(MODEL_PATH, 'train-model-dmp_param.pkl')
 
 FILE_NAME = 'dmp_parameter-traj_N_5000000_n-bf_20_ay_25.pkl'
 ext = FILE_NAME[-3:]
-FILE_DIR = 'scripts/generated'
+FILE_DIR = 'scripts/dataset'
 FILE_PATH = join(ROOT_DIR, FILE_DIR,  FILE_NAME)
 
 if __name__ == '__main__':
@@ -30,9 +30,7 @@ if __name__ == '__main__':
     file_data_loader = PickleDataLoader(FILE_PATH)
     print(FILE_NAME + ' imported')
     print('Splitting dataset')
-    data_loaders, _ = file_data_loader.getDataLoader(input_mode  = model_param.input_mode,
-                                                     output_mode = model_param.output_mode,
-                                                     data_ratio  = train_param.data_ratio,
+    data_loaders, _ = file_data_loader.getDataLoader(data_ratio  = train_param.data_ratio,
                                                      batch_size  = train_param.batch_size)
     trainer = Trainer(model, train_param)
     trainer.test(data_loaders, plot_comparison_idx = 30)

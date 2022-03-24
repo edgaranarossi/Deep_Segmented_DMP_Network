@@ -1,4 +1,4 @@
-from utils.dataset_importer import MatDataLoader, PickleDataLoader, Scale
+from utils.dataset_importer import MatDataLoader, PickleDataLoader, DMPParamScale
 from utils.networks import CNNDMPNet, NewCNNDMPNet, SegmentedDMPNet, DMPIntegratorNet
 from utils.trainer import Trainer
 from parameters import TrainingParameters, ModelParameters
@@ -10,14 +10,14 @@ from datetime import datetime
 from tensorboardX import SummaryWriter
 from os import listdir
 from time import sleep
-    
+
 init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-ROOT_DIR = '/home/edgar/rllab/scripts/dmp/Custom_Deep-DMP'
+ROOT_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
 chdir(ROOT_DIR)
 
-FILE_NAME = 'dmp_parameter-traj_N_3000000_5x_random_points_3_cutting_traj_points_[2]_n-bf_15_ay_15_dt_0_scale-pos_1_scale-w_1.pkl'
+FILE_NAME = 'dmp_parameter-traj_N_2000000_random-line-curves-scale_50-pos_randomized__n-bf_15_ay_15_dt_0_scale-pos_1_scale-w_1_lim-w_1e8.pkl'
 ext = FILE_NAME[-3:]
-FILE_DIR = 'scripts/generated'
+FILE_DIR = 'scripts/dataset'
 FILE_PATH = join(ROOT_DIR, FILE_DIR,  FILE_NAME)
 
 while FILE_NAME not in listdir(join(ROOT_DIR, FILE_DIR)):
@@ -41,7 +41,7 @@ def writeLog(log):
 
 def writeInitLog():
     writeLog('Network created: ' + init_time)
-    writeLog('Model : Custom_Deep-DMP.scripts.utils.networks.DMPIntegratorNet')
+    writeLog('Model : SegmentedDeepDMPs.scripts.utils.networks.DMPIntegratorNet')
     writeLog('Data Path : ' + FILE_PATH)
     writeLog('Model Save Path : ' + MODEL_SAVE_PATH)
     writeLog('Layer Sizes : ' + str(model.layer_sizes))
@@ -60,14 +60,11 @@ if __name__ == '__main__':
     model = DMPIntegratorNet(train_param, input_size, output_size, model_param.layer_sizes)
     train_param.loss_type = 'MSE'
     writeInitLog()
-    # file_data_loader = MatDataLoader(FILE_PATH, include_tau = False if model_param.dmp_param.tau == None else True)
     writeLog('Importing ' + FILE_NAME + ' ...')
     file_data_loader = PickleDataLoader(FILE_PATH, data_limit = None)
     writeLog(FILE_NAME + ' imported')
     writeLog('Splitting dataset')
-    data_loaders, _ = file_data_loader.getDataLoader(input_mode  = model_param.input_mode,
-                                                     output_mode = model_param.output_mode,
-                                                     data_ratio  = train_param.data_ratio,
+    data_loaders, _ = file_data_loader.getDataLoader(data_ratio  = train_param.data_ratio,
                                                      batch_size  = train_param.batch_size)
     # model_param.scale = scale
     saveParams()
