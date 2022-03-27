@@ -11,12 +11,13 @@ import pickle as pkl
 from utils.pydmps_torch import DMPs_discrete_torch
 from utils.networks import SegmentDMPCNN
 from copy import deepcopy
+import cv2
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 IMG_SIZE = 50
 
-model_path = '/home/robot-ll172/Documents/edgar/Segmented-Deep-DMPs/test_model/SegmentDMPCNN'
-img_path = '/home/robot-ll172/Documents/edgar/Segmented-Deep-DMPs/test_model'
+model_path = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model/SegmentDMPCNN'
+# img_path = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model'
 train_param_path = join(model_path, 'train-model-dmp_param.pkl')
 best_param_path = join(model_path, 'best_net_parameters')
 train_param = pkl.load(open(train_param_path, 'rb'))
@@ -109,8 +110,6 @@ def rescaleOutput(preds, keys_to_normalize, scaler):
 #     plotDMPSegments(num_segments_pred, y0_pred, goals_pred, weights_pred)
 
 # #%%
-import cv2
-from PIL import Image
 # from time import sleep
 # from datetime import datetime
  
@@ -158,6 +157,26 @@ while(True):
     if k == 27:
         break
     
-vid.release()
+vid.release() 
+# Destroy all the windows
+cv2.destroyAllWindows()
+
+#%%
+import cv2
+import numpy as np
+
+vid = cv2.VideoCapture(0)
+frame_size = 480
+
+while(True):
+    k = cv2.waitKey(1)
+    ret, frame = vid.read()
+    if frame is None: frame = np.zeros((frame_size, frame_size, 3))
+    frame_cropped = np.array(frame[:, :frame.shape[0]])
+    cv2.imshow('frame', frame_cropped)
+    if k == 27:
+        break
+    
+vid.release() 
 # Destroy all the windows
 cv2.destroyAllWindows()
