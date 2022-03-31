@@ -1,4 +1,4 @@
-#%%
+1#%%
 from PIL import Image
 import numpy as np
 from numpy import array, flipud, where
@@ -9,21 +9,45 @@ from torch import from_numpy, cat
 import torch
 import pickle as pkl
 from utils.pydmps_torch import DMPs_discrete_torch
-from utils.networks import SegmentDMPCNN
+from utils.networks import SegmentDMPCNN, CNNDeepDMP
 from copy import deepcopy
 import cv2
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-IMG_SIZE = 50
+# IMG_SIZE = 50
 
-model_path = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model/SegmentDMPCNN'
-# img_path = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model'
-train_param_path = join(model_path, 'train-model-dmp_param.pkl')
-best_param_path = join(model_path, 'best_net_parameters')
-train_param = pkl.load(open(train_param_path, 'rb'))
-model = SegmentDMPCNN(train_param)
-model.load_state_dict(torch.load(best_param_path))
-model.eval()
+# model_path = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model/SegmentDMPCNN'
+# # img_path = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model'
+# train_param_path = join(model_path, 'train-model-dmp_param.pkl')
+# best_param_path = join(model_path, 'best_net_parameters')
+# train_param = pkl.load(open(train_param_path, 'rb'))
+# model = SegmentDMPCNN(train_param)
+# model.load_state_dict(torch.load(best_param_path))
+# model.eval()
+print("\n:: Loading segment model")
+model_path_segment = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model/SegmentDMPCNN'
+train_param_segment_path = join(model_path_segment, 'train-model-dmp_param.pkl')
+best_param_segment_path = join(model_path_segment, 'best_net_parameters')
+train_param_segment = pkl.load(open(train_param_segment_path, 'rb'))
+model_segment = SegmentDMPCNN(train_param_segment)
+model_segment.load_state_dict(torch.load(best_param_segment_path))
+model_segment.eval()
+print(":: Model loaded")
+
+print("\n:: Loading Deep DMP model")
+model_path_deep_dmp = '/home/robot-ll172/Documents/edgar/Segmented_Deep_DMPs/test_model/CNNDeepDMP'
+train_param_deep_dmp_path = join(model_path_deep_dmp, 'train-model-dmp_param.pkl')
+best_param_deep_dmp_path = join(model_path_deep_dmp, 'best_net_parameters')
+train_param_deep_dmp = pkl.load(open(train_param_deep_dmp_path, 'rb'))
+model_deep_dmp = CNNDeepDMP(train_param_deep_dmp)
+model_deep_dmp.load_state_dict(torch.load(best_param_deep_dmp_path))
+model_deep_dmp.eval()
+print(":: Model loaded")
+
+# DT = 0.15
+DT_DEEP_DMP = train_param_deep_dmp.model_param.dmp_param.dt
+DT_DEEP_DMP = 0.01
+DT = DT_DEEP_DMP
 
 def preProcessImage(img_np, segment_threshold = 0.7, size = 50):
     assert len(img_np.shape) == 3
@@ -43,11 +67,14 @@ def preProcessImage(img_np, segment_threshold = 0.7, size = 50):
     
     return processed_img
 
-def plotDMPSegments(preds, image = None, plot = True):
-    num_segments = int(torch.clamp(torch.round(preds[0]).reshape(1), max = train_param.model_param.max_segments).item())
-    y0 = preds[1].reshape(1, train_param.model_param.dmp_param.dof, 1)
-    segment_goals = preds[2].reshape(-1, train_param.model_param.dmp_param.dof, 1)
-    segment_weights = preds[3].reshape(-1, train_param.model_param.dmp_param.dof, train_param.model_param.dmp_param.n_bf)
+def generateDMPSegments(train_param, preds, image = None, plot = True, dt = None, deep_dmp = False):
+    if deep_dmp == False:
+        idx_modifier = 0
+        num_segments = int(torch.clamp(torch.round(preds[0]).reshape(1), max = train_param.model_param.max_segments).item())
+    else: idx_modifier = -1
+    y0 = preds[1 + idx_modifier].reshape(1, train_param.model_param.dmp_param.dof, 1)
+    segment_goals = preds[2 + idx_modifier].reshape(-1, train_param.model_param.dmp_param.dof, 1)
+    segment_weights = preds[3 + idx_modifier].reshape(-1, train_param.model_param.dmp_param.dof, train_param.model_param.dmp_param.n_bf)
     
     all_pos_pred = cat([y0, segment_goals], dim = 0)
     
@@ -57,11 +84,16 @@ def plotDMPSegments(preds, image = None, plot = True):
     dmp_pred = DMPs_discrete_torch(n_dmps = train_param.model_param.dmp_param.dof, 
                                    n_bfs = train_param.model_param.dmp_param.n_bf, 
                                    ay = train_param.model_param.dmp_param.ay, 
-                                   dt = train_param.model_param.dmp_param.dt)
+                                   dt = train_param.model_param.dmp_param.dt if dt == None else dt)
     # dmp_pred.y0 = rescaled_pred[1].reshape(1, train_param.model_param.dmp_param.dof, 1)
-    dmp_pred.y0         = y0s_pred[:num_segments]
-    dmp_pred.goal       = goals_pred[:num_segments]
-    dmp_pred.w          = segment_weights[:num_segments].reshape(num_segments, train_param.model_param.dmp_param.dof, train_param.model_param.dmp_param.n_bf)
+    if deep_dmp == False:
+        dmp_pred.y0         = y0s_pred[:num_segments]
+        dmp_pred.goal       = goals_pred[:num_segments]
+        dmp_pred.w          = segment_weights[:num_segments].reshape(num_segments, train_param.model_param.dmp_param.dof, train_param.model_param.dmp_param.n_bf)
+    else:
+        dmp_pred.y0         = y0s_pred
+        dmp_pred.goal       = goals_pred
+        dmp_pred.w          = segment_weights.reshape(1, train_param.model_param.dmp_param.dof, train_param.model_param.dmp_param.n_bf)
     y_track_pred, _, _  = dmp_pred.rollout()
     
     y_pred = y_track_pred.reshape(-1, train_param.model_param.dmp_param.dof)
@@ -72,16 +104,23 @@ def plotDMPSegments(preds, image = None, plot = True):
     
     multiplier = 28
     y_pred_np = ((y_pred.detach().cpu().numpy() * multiplier) + padding).reshape(-1, train_param.model_param.dmp_param.dof)
-    all_pos_pred_np = ((all_pos_pred.detach().cpu().numpy() * multiplier).reshape(-1, train_param.model_param.dmp_param.dof) + padding)
+    # all_pos_pred_np = ((all_pos_pred.detach().cpu().numpy() * multiplier).reshape(-1, train_param.model_param.dmp_param.dof) + padding)
     
-    if plot:
-        fig = plt.figure(figsize=(6,6))
-        plt.imshow(flipud(image), cmap='Greys_r', origin = 'lower')
-        plt.scatter(all_pos_pred_np[:num_segments + 1, 0], all_pos_pred_np[:num_segments + 1, 1], c = 'r', zorder = 6)
-        plt.plot(y_pred_np[:,0], y_pred_np[:,1], c = 'r')
-        plt.show()
+    if plot: plotTrajectory(y_pred_np, image)
     
     return y_pred_np
+
+def plotTrajectory(y_pred, image = None):
+    print(":: Plotting trajectory")
+    y_pred_color = np.append(y_pred[:, 1], y_pred[-1, 1])
+    y_pred_color = np.diff(y_pred_color)
+    y_pred_color = (y_pred_color - y_pred_color.min()) / (y_pred_color.max() - y_pred_color.min())
+    
+    plt.figure(figsize=(6,6))
+    plt.imshow(flipud(image), cmap='Greys_r', origin = 'lower')
+    for i in range(y_pred.shape[0]):
+        plt.scatter(y_pred[i,0], y_pred[i,1], c = (y_pred_color[i], 0, 1 - y_pred_color[i]))
+    plt.show()
     
 def rescaleOutput(preds, keys_to_normalize, scaler):
     rescaled_pred = []
@@ -115,46 +154,64 @@ def rescaleOutput(preds, keys_to_normalize, scaler):
  
 # time_between_inference = 5
 # prev_infer_time = datetime.now()
-frame_size = 480
-
+FRAME_SIZE = 480
+IMG_SIZE = 50
+#%%
 # overlay_img = np.zeros()
 vid = cv2.VideoCapture(0)
   
 while(True):
-    k = cv2.waitKey(1)
-    # print(k)
-    # cur_time = datetime.now()
-    # Capture the video frame
-    # by frame  
+    key = cv2.waitKey(1)
+    # key = getch()
     ret, frame = vid.read()
-    if frame is None: frame = np.zeros((frame_size, frame_size, 3))
+
+    if frame is None: frame = np.zeros((FRAME_SIZE, FRAME_SIZE, 3))
     frame_cropped = np.array(frame[:, :frame.shape[0]])
     frame_cropped_resized = array(Image.fromarray(frame_cropped).resize((IMG_SIZE, IMG_SIZE), Image.ANTIALIAS))
     processed_img = preProcessImage(frame_cropped, segment_threshold = 'auto')
     
-    preds = model(from_numpy(processed_img.reshape(1, 1, IMG_SIZE, IMG_SIZE)).to(DEVICE).float())
-    rescaled_pred = rescaleOutput(preds, train_param.model_param.keys_to_normalize, train_param.model_param.dmp_param.scale)
-    y_pred = plotDMPSegments(rescaled_pred, image = processed_img, plot = False)
-    # prev_infer_time = cur_time
-    # if (cur_time - prev_infer_time).seconds >= time_between_inference:
-    if k == 32:
-        y_pred = plotDMPSegments(rescaled_pred, image = processed_img)
-    
-    # Display the resulting frame
-    # to_plot = (np.tile(processed_img.reshape(frame_size, frame_size, 1), (1, 1, 3)) * 255).astype(np.uint8)
+    preds_segment = model_segment(from_numpy(processed_img.reshape(1, 1, IMG_SIZE, IMG_SIZE)).to(DEVICE).float())
+    preds_deep_dmp = model_deep_dmp(from_numpy(processed_img.reshape(1, 1, IMG_SIZE, IMG_SIZE)).to(DEVICE).float())
+    # print(preds_deep_dmp[0].shape, preds_deep_dmp[1].shape)
+    rescaled_pred_segment = rescaleOutput(preds_segment, train_param_segment.model_param.keys_to_normalize, train_param_segment.model_param.dmp_param.scale)
+    rescaled_pred_deep_dmp = rescaleOutput(preds_deep_dmp, train_param_deep_dmp.model_param.keys_to_normalize, train_param_deep_dmp.model_param.dmp_param.scale)
+    y_pred_segment = generateDMPSegments(train_param_segment, rescaled_pred_segment, image = processed_img, plot = False, dt = DT)
+    y_pred_deep_dmp = generateDMPSegments(train_param_deep_dmp, rescaled_pred_deep_dmp, image = processed_img, plot = False, dt = DT_DEEP_DMP, deep_dmp = True)
+
     to_plot = np.fliplr(np.rot90(np.rot90(frame_cropped))).astype(np.uint8).copy()
-    for p in y_pred:
+    y_pred_color_segment = np.append(y_pred_segment[:, 1], y_pred_segment[-1, 1])
+    y_pred_color_segment = np.diff(y_pred_color_segment)
+    y_pred_color_segment = (y_pred_color_segment - y_pred_color_segment.min()) / (y_pred_color_segment.max() - y_pred_color_segment.min())
+
+    y_pred_color_deep_dmp = np.append(y_pred_deep_dmp[:, 1], y_pred_deep_dmp[-1, 1])
+    y_pred_color_deep_dmp = np.diff(y_pred_color_deep_dmp)
+    y_pred_color_deep_dmp = (y_pred_color_deep_dmp - y_pred_color_deep_dmp.min()) / (y_pred_color_deep_dmp.max() - y_pred_color_deep_dmp.min())
+    
+    to_plot_2 = deepcopy(to_plot)
+    
+    for i, p in enumerate(y_pred_segment):
         # to_plot[int(np.round(p[0] / 50 * frame_size)), int(np.round(p[1]) / 50 * frame_size)] = [0, 0, 255]
-        to_plot = cv2.circle(img = to_plot, center = (int(np.round(p[0] / 50 * frame_size)), int(np.round(p[1]) / 50 * frame_size)), radius = 1, color = [0, 0, 255], thickness = 2)
-    # to_plot[40, 40] = [0, 0, 255]
-    to_plot = array(Image.fromarray(to_plot).resize((frame_size*2, frame_size*2), Image.ANTIALIAS))
+        to_plot = cv2.circle(img = to_plot, center = (int(np.round(p[0] / 50 * FRAME_SIZE)), int(np.round(p[1]) / 50 * FRAME_SIZE)), radius = 1, color = [255 - (y_pred_color_segment[i] * 255), 0, y_pred_color_segment[i] * 255], thickness = 2)
+    
+    for i, p in enumerate(y_pred_deep_dmp):
+        # to_plot[int(np.round(p[0] / 50 * frame_size)), int(np.round(p[1]) / 50 * frame_size)] = [0, 0, 255]
+        to_plot_2 = cv2.circle(img = to_plot_2, center = (int(np.round(p[0] / 50 * FRAME_SIZE)), int(np.round(p[1]) / 50 * FRAME_SIZE)), radius = 1, color = [0, 255 - (y_pred_color_deep_dmp[i] * 255), y_pred_color_deep_dmp[i] * 255], thickness = 2)
+    
+    to_plot = array(Image.fromarray(to_plot).resize((FRAME_SIZE*2, FRAME_SIZE*2), Image.ANTIALIAS))
+    to_plot_2 = array(Image.fromarray(to_plot_2).resize((FRAME_SIZE*2, FRAME_SIZE*2), Image.ANTIALIAS))
+    processed_img = array(Image.fromarray(processed_img).resize((FRAME_SIZE*2, FRAME_SIZE*2), Image.ANTIALIAS))
+    processed_img = np.tile(processed_img.reshape(FRAME_SIZE*2, FRAME_SIZE*2, 1), (1, 1, 3)) / processed_img.max() * 255
+    processed_img = np.where(processed_img < 50, 0, processed_img)
+    processed_img = processed_img.astype(np.uint8).copy()
+    
     to_plot = np.fliplr(np.rot90(np.rot90(to_plot)))
-    cv2.imshow('frame', to_plot)
+    to_plot_2 = np.fliplr(np.rot90(np.rot90(to_plot_2)))
+    cv2.imshow('frame', np.concatenate((processed_img.astype(np.uint8), to_plot, to_plot_2), axis = 1))
     
     # the 'q' button is set as the
     # quitting button you may use any
     # desired button of your choice
-    if k == 27:
+    if key == 27:
         break
     
 vid.release() 
