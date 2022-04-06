@@ -1560,7 +1560,7 @@ class SegmentDMPCNN(nn.Module):
         # y0              = self.output_y0(x)
         # goal            = self.output_goal(x)
         pos             = self.output_pos(x).reshape(batch_s, self.num_position, self.dof)
-        w               = self.output_w(x).reshape(batch_s, self.max_segments, self.dof * self.dmp_param.n_bf)
+        w               = self.output_w(x).reshape(batch_s, self.max_segments, self.dof, self.dmp_param.n_bf)
 
         y0 = pos[:, 0]
         goals = pos[:, 1:] 

@@ -437,9 +437,9 @@ class Trainer:
         plt.show()
 
     def checkStoppingCondition(self):
-        if psutil.virtual_memory().percent > 95:
+        if psutil.virtual_memory().percent > 97:
             self.train = False
-            self.train_param.writeLog('\nStopping Reason : Out of Memory')
+            self.train_param.writeLog('\nStopping Reason : Out of Memory (>97%)')
         if self.train_param.max_epoch != None and self.epoch >= self.train_param.max_epoch:
             self.train = False
             self.train_param.writeLog('\nStopping Reason : Maximum epoch reached')

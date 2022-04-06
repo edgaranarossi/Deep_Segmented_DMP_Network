@@ -121,7 +121,8 @@ def generate_cutting_traj(top_left,
     
 #%%
 SAVE = 1
-NUM_DATASET = int(1e4)
+PRINT_PLOT = 0
+NUM_DATASET = int(1e3)
 print_every = 100
 generation_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 SAVE_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/data/images/cutting_' + str(NUM_DATASET) + '_' + generation_time
@@ -139,6 +140,8 @@ DATA_Y0_NORMAL = []
 DATA_YGOAL_NORMAL = []
 DATA_W_NORMAL = []
 
+DATA_DMP_TRAJ = []
+
 for i in range(NUM_DATASET):
     base_shape = array([[0.25, 0.0],
                         [0.0, 0.0],
@@ -152,9 +155,10 @@ for i in range(NUM_DATASET):
     x = gen.generate(size_random_magnitude = (1., .5), 
                      shape_random_magnitude = (randint(0, 3)/100, randint(0, 6)/100), 
                      smoothing_magnitude = randint(0, 4),
-                     plot_shape = False,
+                     plot_shape = PRINT_PLOT,
                      plot_save_path = None if not SAVE else save_path,
-                     plot_target_size = (50, 50))
+                     # plot_target_size = (50, 50))
+                     plot_target_size = None)
     
     x_min = x.min(axis = 0)[0]
     x_max = x.max(axis = 0)[0]
@@ -168,11 +172,13 @@ for i in range(NUM_DATASET):
                                 top_padding = 0.2,
                                 side_padding = 0.05,
                                 max_segments = int(1.5 // 0.2))
-    
-    if SAVE: DATA_IMAGES.append(array(Image.open(save_path).convert("L")).reshape(1, 50, 50))
+    num_segment = (num_cut * 2) + 1
+    reconstructed_traj = np.array(ys[:num_segment]).reshape(-1, 2)
+    if SAVE: DATA_IMAGES.append(array(Image.open(save_path).convert("L").resize((50, 50))))#.reshape(1, 50, 50))
     # DATA_IMAGES.append(array(Image.open(save_path)))
     DATA_IMAGE_NAMES.append(img_name)
-    DATA_NUM_SEGMENT.append((num_cut * 2) + 1)
+    DATA_NUM_SEGMENT.append(num_segment)
+    DATA_DMP_TRAJ.append(reconstructed_traj)
     DATA_Y0.append(dmps[0].y0)
     y_goals = []
     ws = []
@@ -192,6 +198,7 @@ for i in range(NUM_DATASET):
 dataset = {'image'              : array(DATA_IMAGES),
            'image_name'         : DATA_IMAGE_NAMES,
            'num_segments'       : array(DATA_NUM_SEGMENT),
+           'dmp_traj'           : DATA_DMP_TRAJ,
            'max_segments'       : 15,
            'dmp_y0_segments'    : array(DATA_Y0),
            'dmp_goal_segments'  : array(DATA_YGOAL_SEGMENTS),

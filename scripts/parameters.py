@@ -28,7 +28,10 @@ class TrainingParameters:
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_11-19-22.pkl'
         self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_18-46-09.pkl'
 
-        self.dataset_path = join(self.dataset_dir,  self.dataset_name)
+        self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
+        # self.data_limit     = None
+        self.data_limit     = 358
+        self.shuffle_data   = True
 
         self.model_param = ModelParameters()
         self.model_name = str(self.model_param.model).split("'")[1].split(".")[-1]
@@ -45,7 +48,7 @@ class TrainingParameters:
         # Optimizer parameters
         self.optimizer_type = 'adam'
         self.sdtw_gamma = 1e-4
-        self.learning_rate = 5e-6
+        self.learning_rate = 5e-5
         self.eps = 5e-3
         self.weight_decay = None
 

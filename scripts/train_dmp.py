@@ -1,13 +1,13 @@
 from utils.dataset_importer import PickleDataLoader
 from utils.trainer import Trainer
 from parameters import TrainingParameters
-
+from os import chdir, getcwd
 from os.path import join
 from torchsummary import summary
 import torch
 import pickle as pkl
-
 from tensorboardX import SummaryWriter
+chdir(getcwd())
 
 if __name__ == '__main__':
     train_param = TrainingParameters()
@@ -18,9 +18,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(train_param.model_save_path+'/log')
 #%%
     train_param.writeLog('Importing ' + train_param.dataset_name + ' ...')
-    file_data_loader = PickleDataLoader(train_param.dataset_path,
-                                        data_limit = None,
-                                        keys_to_normalize = model_param.keys_to_normalize)
+    file_data_loader = PickleDataLoader(train_param)
     train_param.writeLog(train_param.dataset_name + ' imported')
 #%%
     train_param.writeLog('Splitting dataset')
