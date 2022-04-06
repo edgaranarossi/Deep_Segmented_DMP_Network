@@ -78,7 +78,7 @@ class CNNDMPNet(nn.Module):
         # x = F.relu(F.max_pool2d(self.conv2(x), 2))
 
         x = flatten(x, 1) # flatten all dimensions except batch
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -154,7 +154,7 @@ class FixedSegmentDictDMPNet(nn.Module):
         # x = torch.cat([x1, x2, x3], dim = 1)
         # x = torch.cat([x1, x2], dim = 1)
         x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -256,7 +256,7 @@ class DynamicSegmentDictDMPNet(nn.Module):
         # x = torch.cat([x1, x2, x3], dim = 1)
         x = torch.cat([x1, x2], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
     
     def forward(self, x):
         # print(x.type())
@@ -351,7 +351,7 @@ class SegmentNumCNN(nn.Module):
         x1 = F.relu(F.max_pool2d(self.conv1_4(x1), 2), inplace=False)
         x1 = flatten(x1, 1) # flatten all dimensions except batch
         x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         x = self.forwardConv(x['image'])
@@ -435,7 +435,7 @@ class SegmentDictionaryDMPNet(nn.Module):
         # x = torch.cat([x1, x2, x3], dim = 1)
         x = torch.cat([x1, x2], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         self.cur_batch_size = x.shape[0]
@@ -603,7 +603,7 @@ class SampledSegmentDictDMPV1(nn.Module):
         # x = torch.cat([x1, x2, x3], dim = 1)
         # x = torch.cat([x1, x2], dim = 1)
         x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -791,7 +791,7 @@ class SampledSegmentDictDMPV2(nn.Module):
         # x = torch.cat([x1, x2, x3], dim = 1)
         # x = torch.cat([x1, x2], dim = 1)
         x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         self.batch_s = x.shape[0]
@@ -990,7 +990,7 @@ class DynamicParameterDMPNet(nn.Module):
 
         x = torch.cat([x1, x2], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         self.batch_s = x.shape[0]
@@ -1159,7 +1159,7 @@ class FirstStageCNN(nn.Module):
 
         x = torch.cat([x1, x2, x3], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -1405,7 +1405,7 @@ class SegmentPosNet(nn.Module):
 
         x = torch.cat([x1, x2, x3], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -1468,7 +1468,7 @@ class SegmentWeightNet(nn.Module):
 
         x = torch.cat([x1, x2, x3], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -1540,7 +1540,7 @@ class SegmentDMPCNN(nn.Module):
 
         x = torch.cat([x0, x1, x2, x3], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:
@@ -1612,7 +1612,7 @@ class CNNDeepDMP(nn.Module):
 
         x = torch.cat([x1, x2, x3], dim = 1)
         # x = x1
-        return x.cuda()
+        return x.to(DEVICE)
 
     def forward(self, x):
         if type(x) == dict:

@@ -1,6 +1,7 @@
 import torch
 from torch.nn import MSELoss
 from torch import ones, zeros, zeros_like, linspace, exp, clone, sum, cos, sin, tensor, cat, cdist, diff, clamp, floor, tile, sign
+from .soft_dtw_cuda import SoftDTW
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
