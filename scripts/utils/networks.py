@@ -1544,6 +1544,7 @@ class SegmentDMPCNN(nn.Module):
 
     def forward(self, x):
         if type(x) == dict:
+            # print(x['image'].shape)
             x = self.forwardConv(x['image'])
         else:
             x = self.forwardConv(x)
@@ -1629,9 +1630,9 @@ class CNNDeepDMP(nn.Module):
         x = self.fc[-1](self.dropout(x))
 
         pos             = self.output_pos(x).reshape(batch_s, self.num_position, self.dof)
-        w               = self.output_w(x).reshape(batch_s, self.max_segments, self.dof * self.dmp_param.n_bf)
+        w               = self.output_w(x).reshape(batch_s, self.dof, self.dmp_param.n_bf)
 
         y0 = pos[:, 0]
-        goals = pos[:, 1].reshape(batch_s, 1, self.dof)
+        goals = pos[:, 1]#.reshape(batch_s, 1, self.dof)
 
         return [y0, goals, w]

@@ -11,9 +11,10 @@ from os.path import join, isdir
 import pandas as pd
 
 net_desc_name = 'network_description.txt'
-model_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/models'
+# model_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/models'
+model_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs\\models'
 models = [i for i in listdir(model_dir) if isdir(join(model_dir,i)) and
-                                           'Dynamic' in i and
+                                           'SegmentDMPCNN' in i and
                                            net_desc_name in listdir(join(model_dir,i))]
 models = sorted(models)
 
@@ -58,8 +59,10 @@ df = pd.DataFrame(parsed)
 
 #%%
 import pickle as pkl
+from os.path import join, isdir
 
-model_name = 'Model_DynamicSegmentDictDMPNet_2022-02-01_20-48-50'
+model_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs\\models\\SegmentDMPCNN'
+model_name = 'Model_SegmentDMPCNN_2022-04-06_13-42-39'
 train_param = pkl.load(open(join(model_dir, model_name, 'train-model-dmp_param.pkl'), 'rb'))
 model_param = train_param.model_param
 dmp_param = model_param.dmp_param

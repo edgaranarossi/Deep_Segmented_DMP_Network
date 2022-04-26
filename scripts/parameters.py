@@ -11,7 +11,8 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class TrainingParameters:
     def __init__(self):
-        self.root_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
+        # self.root_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
+        self.root_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs'
         self.init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # Dataset parameter
@@ -26,11 +27,13 @@ class TrainingParameters:
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_2022-03-16_16-41-59.pkl'
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_2022-03-23_09-24-58.pkl'
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_11-19-22.pkl'
-        self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_18-46-09.pkl'
+        # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_18-46-09.pkl'
+        self.dataset_name = 'image_num-seg_y0_goals_ws_N_1000+seg=n-bf_20_ay_7_dt0.02_max-seg_15_padded+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-04-08_01-07-33.pkl'
 
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         # self.data_limit     = None
-        self.data_limit     = 358
+        # self.data_limit     = 358 # 250
+        self.data_limit     = 100 # 70
         self.shuffle_data   = True
 
         self.model_param = ModelParameters()
@@ -53,14 +56,14 @@ class TrainingParameters:
         self.weight_decay = None
 
         # Training parameters
-        self.max_epoch = None
-        self.max_val_fail = 200
+        self.max_epoch = int(2e4)
+        self.max_val_fail = 100
         self.validation_interval = 1
         self.log_interval = 1
         if self.model_param.network_configuration in ['1', '2']:
             self.plot_interval = 5
         else:
-            self.plot_interval = 1
+            self.plot_interval = 5
         self.plot_num = 5
 
         # Data parameters
@@ -92,6 +95,7 @@ class TrainingParameters:
         self.writeLog('Model : ' + str(self.model_param.model))
         self.writeLog(model.__str__())
         self.writeLog('Data Path : ' + self.dataset_path)
+        self.writeLog('Data Limit : ' + str(self.data_limit))
         self.writeLog('Model Save Path : ' + self.model_save_path)
         self.writeLog('Layer Sizes : ' + str(self.model_param.layer_sizes))
 

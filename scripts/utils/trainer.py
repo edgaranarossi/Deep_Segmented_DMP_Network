@@ -360,7 +360,7 @@ class Trainer:
                     # dmp_label.y0 = rescaled_label[1].reshape(1, self.dmp_param.dof, 1)
                     dmp_label.y0        = y0s_label[:num_segments_label]
                     dmp_label.goal      = goals_label[:num_segments_label]
-                    dmp_label.w         = rescaled_label[2][:num_segments_label].reshape(num_segments_label, self.dmp_param.dof, self.dmp_param.n_bf)
+                    dmp_label.w         = rescaled_label[2].reshape(num_segments_label, self.dmp_param.dof, self.dmp_param.n_bf)
                     y_track_label, _, _ = dmp_label.rollout()
 
                     dmp_pred = DMPs_discrete_torch(n_dmps = self.dmp_param.dof, 
@@ -370,7 +370,7 @@ class Trainer:
                     # dmp_pred.y0 = rescaled_pred[1].reshape(1, self.dmp_param.dof, 1)
                     dmp_pred.y0         = y0s_pred[:num_segments_pred]
                     dmp_pred.goal       = goals_pred[:num_segments_pred]
-                    dmp_pred.w          = rescaled_pred[2][:num_segments_pred].reshape(num_segments_pred, self.dmp_param.dof, self.dmp_param.n_bf)
+                    dmp_pred.w          = rescaled_pred[2].reshape(num_segments_pred, self.dmp_param.dof, self.dmp_param.n_bf)
                     y_track_pred, _, _  = dmp_pred.rollout()
 
                     # for i in range(num_segments_label):

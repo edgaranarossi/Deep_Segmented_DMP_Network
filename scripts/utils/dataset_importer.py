@@ -9,7 +9,6 @@ import pickle
 import sys
 import psutil
 import random
-sys.path.append('/home/edgar/rllab/tools/DMP/imednet')
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -64,8 +63,11 @@ class PickleDataLoader:
                 if self.data_length == None: self.data_length = self.data[key].shape[0]
             if isinstance(self.data[key], ndarray) and len(self.data[key].shape) == 1:
                 self.data[key] = self.data[key].reshape(-1, 1)
-            if key == 'image' and self.data[key].max() > 1:
-                self.data[key] = self.data[key] / 255
+            if key == 'image':
+                if self.data[key].max() > 1:
+                    self.data[key] = self.data[key] / 255
+                if len(self.data[key].shape) == 3:
+                    self.data[key] = self.data[key].reshape(self.data[key].shape[0], 1, self.data[key].shape[1], self.data[key].shape[2])
             if key == 'max_segments':
                 assert type(self.data[key]) == int
                 self.max_segments = self.data[key]
