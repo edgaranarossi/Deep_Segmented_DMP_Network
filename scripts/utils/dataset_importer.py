@@ -68,7 +68,11 @@ class PickleDataLoader:
         for key in self.data:
             if isinstance(self.data[key], list) or isinstance(self.data[key], ndarray):
                 self.data[key] = self.data[key][:self.data_limit]
-                if self.data_length == None: self.data_length = self.data[key].shape[0]
+                if self.data_length == None:
+                    if isinstance(self.data[key], list):
+                        self.data_length = len(self.data[key])
+                    elif isinstance(self.data[key], ndarray):
+                        self.data_length = self.data[key].shape[0]
             if isinstance(self.data[key], ndarray) and len(self.data[key].shape) == 1:
                 self.data[key] = self.data[key].reshape(-1, 1)
             if key == 'image':

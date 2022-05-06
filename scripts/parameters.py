@@ -28,7 +28,8 @@ class TrainingParameters:
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_2022-03-23_09-24-58.pkl'
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_11-19-22.pkl'
         # self.dataset_name = 'image_num-seg_y0_goals_ws_N_10000+seg=n-bf_20_ay_7_dt0.02_max-seg_15+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-03-23_18-46-09.pkl'
-        self.dataset_name = 'image_num-seg_y0_goals_ws_N_1000+seg=n-bf_20_ay_7_dt0.02_max-seg_15_padded+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-04-08_01-07-33.pkl'
+        # self.dataset_name = 'image_num-seg_y0_goals_ws_N_1000+seg=n-bf_20_ay_7_dt0.02_max-seg_15_padded+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-04-08_01-07-33.pkl'
+        self.dataset_name = 'real_trajectory.num_data_400_num_seg_10.normal_dmp_bf_300_ay_25_dt_0.001.seg_dmp_bf_30_ay_10_dt_0.015.2022-05-06_19-43-40.pkl'
 
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         self.data_limit     = None
@@ -65,11 +66,11 @@ class TrainingParameters:
         if self.model_param.network_configuration in ['1', '2']:
             self.plot_interval = 5
         else:
-            self.plot_interval = 5
+            self.plot_interval = None
         self.plot_num = 5
 
         # Data parameters
-        self.batch_size = 25
+        self.batch_size = 5
         self.training_ratio = 7
         self.validation_ratio = 2
         self.test_ratio = 1
@@ -112,13 +113,13 @@ class ModelParameters:
         self.keys_to_normalize      = []
 
         # Network Parameters
-        self.image_dim              = (1, 50, 50)
+        self.image_dim              = (1, 100, 100)
         self.dropout_prob           = 0.
 
         self.conv_layer_params = [[Conv2dParam(out_channels = 256, kernel_size = 5)],
                                   [Conv2dParam(out_channels = 256, kernel_size = 10)],
-                                  [Conv2dParam(out_channels = 256, kernel_size = (5, 49), description = 'width')],
-                                  [Conv2dParam(out_channels = 256, kernel_size = (49, 5), description = 'height')]]
+                                  [Conv2dParam(out_channels = 256, kernel_size = (5, 50), description = 'width')],
+                                  [Conv2dParam(out_channels = 256, kernel_size = (50, 5), description = 'height')]]
 
         # Define hidden layers sizes (No need to define output layer size)
         # self.hidden_layer_sizes            = [4096, 2048, 2048]
@@ -155,8 +156,9 @@ class ModelParameters:
         14: SegmentWeightNet
         15: SegmentDMPCNN
         16: CNNDeepDMP
+        17: SegmentedDMPNetwork
         """
-        self.network_configuration  = '15'
+        self.network_configuration  = '17'
 
         if self.network_configuration == '1':
             self.model = CNNDMPNet

@@ -1669,8 +1669,10 @@ class ImageInputProcessor(nn.Module):
         for conv_pipeline in self.conv_pipelines:
             input_x = x
             for conv in conv_pipeline:
-                input_x = F.relu(F.max_pool2d(conv(input_x), inplace = False))
-            conv_pipelines.append(flatten(input_x))
+                input_x = F.relu(F.max_pool2d(conv(input_x), 2), inplace = False)
+            conv_pipelines.append(flatten(input_x, start_dim = 1))
+        # for conv_pipeline in conv_pipelines:
+        #     print(conv_pipeline.shape)
         x = cat(conv_pipelines, dim = 1).to(DEVICE)
         return x
 
@@ -1689,6 +1691,7 @@ class ImageInputProcessor(nn.Module):
 
 class DMPWeightDecoder(nn.Module):
     def __init__(self, train_param, input_size):
+        super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
         self.decoder_layer_sizes = self.model_param.decoder_layer_sizes
@@ -1705,7 +1708,7 @@ class DMPWeightDecoder(nn.Module):
         for idx in range(len(self.decoder_layer_sizes[:-1])):
             self.fc.append(nn.Linear(self.decoder_layer_sizes[idx], self.decoder_layer_sizes[idx+1]).to(DEVICE))
 
-        self.output_w           = nn.Linear(self.decoder_layer_sizes[-1], self.max_segments * self.dof * self.n_bf).to(DEVICE)
+        self.output_w           = nn.Linear(self.decoder_layer_sizes[-1], self.dof * self.n_bf).to(DEVICE)
 
     def forward(self, x):
         for fc in self.fc[:-1]:
@@ -1719,6 +1722,7 @@ class DMPWeightDecoder(nn.Module):
 
 class SegmentedDMPNetwork(nn.Module):
     def __init__(self, train_param):
+        super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
         self.dmp_param          = self.model_param.dmp_param
@@ -1727,10 +1731,10 @@ class SegmentedDMPNetwork(nn.Module):
         self.n_bf               = self.dmp_param.n_bf
         self.latent_w_size      = self.model_param.latent_w_size
 
-        if self.model_param.input_mode == 'image':
+        if self.model_param.input_mode == ['image']:
             self.input_processor    = ImageInputProcessor(self.train_param)
         self.input_processor_output_size = self.input_processor.output_size
-        self.dmp_weight_decoder = DMPWeightDecoder(self.train_param, self.max_segments * self.latent_w_size)
+        self.dmp_weight_decoder = DMPWeightDecoder(self.train_param, input_size = self.latent_w_size)
 
         output_y0_size          = self.max_segments * self.dof
         output_goal_size        = self.max_segments * self.dof
@@ -1742,10 +1746,10 @@ class SegmentedDMPNetwork(nn.Module):
         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
 
     def forward(self, x):
-        batch_s     = x.shape[0]
         x           = self.input_processor(x)
+        batch_s     = x.shape[0]
 
-        latent_w    = self.latent_w(self.tanh(x)).reshape(batch_s * self.max_segments, self.latent_w_size)
+        latent_w    = self.latent_w(x).reshape(batch_s * self.max_segments, self.latent_w_size)
 
         dmp_y0      = self.output_y0(x).reshape(batch_s, self.max_segments, self.dof)
         dmp_goal    = self.output_goal(x).reshape(batch_s, self.max_segments, self.dof)
