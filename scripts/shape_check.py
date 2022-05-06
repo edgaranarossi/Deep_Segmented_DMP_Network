@@ -75,7 +75,7 @@ class ModelParameters:
         # Network Parameters
         self.output_mode = 'traj'
         self.image_dim = (1, 50, 50)
-        self.layer_sizes = [20, 35]
+        self.hidden_layer_sizes = [20, 35]
 
         self.dmp_param = DMPParameters()
 
@@ -89,16 +89,16 @@ class ModelParameters:
             ones(self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.by
 
         """
-        Calculate output layer size and add it to self.layer_sizes
+        Calculate output layer size and add it to self.hidden_layer_sizes
         """
         if self.model_param.segments == None:
-            self.layer_sizes = self.layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
+            self.hidden_layer_sizes = self.hidden_layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
         elif self.model_param.segments > 0:
             self.max_segmentsment_points = self.model_param.segments + 1
             self.max_segmentsment_weights = self.model_param.segments
             self.len_segment_points = self.max_segmentsment_points * self.dmp_param.dof
             self.len_segment_weights = self.max_segmentsment_weights * self.dmp_param.dof * self.dmp_param.n_bf
-            self.layer_sizes = self.layer_sizes +\
+            self.hidden_layer_sizes = self.hidden_layer_sizes +\
                                 [(1 if self.dmp_param.tau == None else 0) +\
                                 self.len_segment_points +\
                                 self.len_segment_weights]
@@ -121,7 +121,7 @@ class SegmentedDMPNet(nn.Module):
         # Get convolution layers output shape and add it to layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
-        layer_sizes = [conv_output_size] + self.model_param.layer_sizes
+        layer_sizes = [conv_output_size] + self.model_param.hidden_layer_sizes
         
         # Define fully-connected layers
         self.fc = []

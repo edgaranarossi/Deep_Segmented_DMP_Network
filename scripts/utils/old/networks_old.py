@@ -27,7 +27,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #         # Get convolution layers output shape and add it to layer_sizes
 #         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
 #         conv_output_size = self.forwardConv(_x).shape[1]
-#         layer_sizes = [conv_output_size] + self.model_param.layer_sizes
+#         layer_sizes = [conv_output_size] + self.model_param.hidden_layer_sizes
         
 #         # Define fully-connected layers
 #         self.fc = ModuleList()
@@ -67,7 +67,7 @@ class SegmentedDMPNet(nn.Module):
         # Get convolution layers output shape and add it to layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
-        layer_sizes = [conv_output_size] + self.model_param.layer_sizes + output_size
+        layer_sizes = [conv_output_size] + self.model_param.hidden_layer_sizes + output_size
         self.output_size = output_size
         # print(layer_sizes)
         # Define fully-connected layers
@@ -218,15 +218,15 @@ class DMPIntegratorNet(nn.Module):
         self.model_param = train_param.model_param
         self.dmp_param   = self.model_param.dmp_param
 
-        # self.layer_sizes = [1024, 1024, 512, 256, 256, 512, 1024, 1024]
-        self.layer_sizes = layer_sizes
-        self.layer_sizes = [input_size] + self.layer_sizes + [output_size]
-        # print(self.layer_sizes)
+        # self.hidden_layer_sizes = [1024, 1024, 512, 256, 256, 512, 1024, 1024]
+        self.hidden_layer_sizes = layer_sizes
+        self.hidden_layer_sizes = [input_size] + self.hidden_layer_sizes + [output_size]
+        # print(self.hidden_layer_sizes)
 
         # Define fully-connected layers
         self.fc = ModuleList()
-        for idx in range(len(self.layer_sizes[:-1])):
-            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+        for idx in range(len(self.hidden_layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.hidden_layer_sizes[idx], self.hidden_layer_sizes[idx+1]).to(DEVICE))
             # self.params.append(self.fc[-1].parameters())
             # self.parameters = Parameter(self.fc[:-1])
 

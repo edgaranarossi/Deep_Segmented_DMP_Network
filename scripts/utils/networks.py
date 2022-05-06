@@ -1,4 +1,4 @@
-from torch import nn, flatten, clone, ones, zeros, tensor, exp, linspace, sum, swapaxes, clamp, tile, abs, sign, round, zeros_like, cos, sin, cat, ceil, floor, remainder, tanh, sqrt, atan2
+from torch import nn, flatten, clone, ones, zeros, tensor, exp, linspace, sum, swapaxes, clamp, tile, abs, sign, round, zeros_like, cos, sin, cat, ceil, floor, remainder, tanh, sqrt, atan2, cat
 from torch.nn import ModuleList, LSTM
 import torch.nn.functional as F
 import torch
@@ -57,7 +57,7 @@ class CNNDMPNet(nn.Module):
         # Get convolution layers output shape and add it to layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
-        layer_sizes = [conv_output_size] + self.model_param.layer_sizes
+        layer_sizes = [conv_output_size] + self.model_param.hidden_layer_sizes
 
         layer_sizes            = layer_sizes + \
                                  [(self.dmp_param.n_bf * self.dmp_param.dof) + \
@@ -119,20 +119,20 @@ class FixedSegmentDictDMPNet(nn.Module):
         # self.conv3_2 = nn.Conv2d(in_channels=256, out_cha nnels=512, kernel_size=10).to(DEVICE)
 
         self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
-        self.layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
-        self.layer_sizes = [conv_output_size] + self.layer_sizes
+        self.hidden_layer_sizes = [conv_output_size] + self.hidden_layer_sizes
 
         # output size:
         # init pos x, init pos y, 
         # (traj_idx, mul_x, mul_y) * num_seg
         output_size = 2 + \
                       (3 * self.max_segments)
-        self.layer_sizes = self.layer_sizes + [output_size]
+        self.hidden_layer_sizes = self.hidden_layer_sizes + [output_size]
         self.fc = ModuleList()
-        for idx in range(len(self.layer_sizes[:-1])):
-            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+        for idx in range(len(self.hidden_layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.hidden_layer_sizes[idx], self.hidden_layer_sizes[idx+1]).to(DEVICE))
 
     def forwardConv(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1_1(x), 2), inplace=False)
@@ -219,10 +219,10 @@ class DynamicSegmentDictDMPNet(nn.Module):
         self.conv2_3 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=10).to(DEVICE)
 
         self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
-        self.layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
-        self.layer_sizes = [conv_output_size] + self.layer_sizes
+        self.hidden_layer_sizes = [conv_output_size] + self.hidden_layer_sizes
 
         # output size:
         # num_seg, 
@@ -231,10 +231,10 @@ class DynamicSegmentDictDMPNet(nn.Module):
         output_size = 1 + \
                       2 + \
                      (1 + 1 + 1) * self.max_segments 
-        self.layer_sizes = self.layer_sizes + [output_size]
+        self.hidden_layer_sizes = self.hidden_layer_sizes + [output_size]
         self.fc = ModuleList()
-        for idx in range(len(self.layer_sizes[:-1])):
-            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+        for idx in range(len(self.hidden_layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.hidden_layer_sizes[idx], self.hidden_layer_sizes[idx+1]).to(DEVICE))
             
     def forwardConv(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1_1(x), 2), inplace=False)
@@ -335,14 +335,14 @@ class SegmentNumCNN(nn.Module):
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
 
-        self.layer_sizes = self.model_param.layer_sizes
-        self.layer_sizes = [conv_output_size] + self.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
+        self.hidden_layer_sizes = [conv_output_size] + self.hidden_layer_sizes
 
         output_size = 1
-        self.layer_sizes = self.layer_sizes + [output_size]
+        self.hidden_layer_sizes = self.hidden_layer_sizes + [output_size]
         self.fc = ModuleList()
-        for idx in range(len(self.layer_sizes[:-1])):
-            self.fc.append(nn.Linear(self.layer_sizes[idx], self.layer_sizes[idx+1]).to(DEVICE))
+        for idx in range(len(self.hidden_layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.hidden_layer_sizes[idx], self.hidden_layer_sizes[idx+1]).to(DEVICE))
 
     def forwardConv(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1_1(x), 2), inplace=False)
@@ -388,7 +388,7 @@ class SegmentDictionaryDMPNet(nn.Module):
         self.conv2_3 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=10).to(DEVICE)
 
         self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
         self.hidden_layer_sizes = [conv_output_size] + self.hidden_layer_sizes
@@ -544,7 +544,7 @@ class SampledSegmentDictDMPV1(nn.Module):
         self.base_traj = self.model_param.base_traj_param.base_traj
         self.max_segments = self.model_param.max_segments
         self.traj_length = self.model_param.traj_length
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
         
         self.base_traj_length = self.base_traj.shape[1]
         self.total_traj_length = self.base_traj.shape[1] * self.max_segments
@@ -732,7 +732,7 @@ class SampledSegmentDictDMPV2(nn.Module):
         self.base_traj = self.model_param.base_traj_param.base_traj
         self.max_segments = self.model_param.max_segments
         self.traj_length = self.model_param.traj_length
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
         
         self.base_traj_length = self.base_traj.shape[1]
         self.total_traj_length = self.base_traj.shape[1] * self.max_segments
@@ -928,7 +928,7 @@ class DynamicParameterDMPNet(nn.Module):
         self.train_param = train_param
         self.model_param = train_param.model_param
         self.dmp_param = self.model_param.dmp_param
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
         self.max_segments = self.model_param.max_segments
         self.connect_segments = self.model_param.connect_segments
         self.dof = self.dmp_param.dof
@@ -1048,7 +1048,7 @@ class AutoEncoderNet(nn.Module):
         self.tanh               = torch.nn.Tanh().to(DEVICE)
         self.dropout            = nn.Dropout(p = self.model_param.dynamical_model_dropout_prob)
 
-        output_context_size     = self.model_param.layer_sizes[-1]
+        output_context_size     = self.model_param.hidden_layer_sizes[-1]
         output_dmp_param_size   = ((2 if not self.connect_segments else 1) * self.dof) + (self.dmp_param.n_bf * self.dof)
         # output_dmp_param_size   = self.dmp_param.n_bf * self.dof
 
@@ -1083,7 +1083,7 @@ class LSTMNet(nn.Module):
         self.tanh               = torch.nn.Tanh().to(DEVICE)
         self.dropout            = nn.Dropout(p = self.model_param.dynamical_model_dropout_prob)
 
-        output_context_size     = self.model_param.layer_sizes[-1]
+        output_context_size     = self.model_param.hidden_layer_sizes[-1]
         output_dmp_param_size   = ((2 if not self.connect_segments else 1) * self.dof) + (self.dmp_param.n_bf * self.dof)
         # output_dmp_param_size   = self.dmp_param.n_bf * self.dof
 
@@ -1117,7 +1117,7 @@ class FirstStageCNN(nn.Module):
         self.max_segments       = self.model_param.max_segments
         self.num_position       = self.max_segments + 1
         self.dof                = self.dmp_param.dof
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
 
         self.conv_incline       = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=256, kernel_size=5).to(DEVICE)
         self.conv_width         = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=128, kernel_size=(5, 49)).to(DEVICE)
@@ -1196,7 +1196,7 @@ class LSTMRemainingSegments(nn.Module):
         self.cnn_model                      = self.model_param.cnn_model
         self.cnn_model_train_param          = self.model_param.cnn_model_train_param
         self.cnn_model_model_param          = self.cnn_model_train_param.model_param
-        self.cnn_model_hidden_layer_sizes   = self.cnn_model_model_param.layer_sizes
+        self.cnn_model_hidden_layer_sizes   = self.cnn_model_model_param.hidden_layer_sizes
         self.max_segments                   = self.model_param.max_segments
         
         self.lstm_goal_state_size           = self.model_param.lstm_goal_state_size
@@ -1298,7 +1298,7 @@ class SecondStageDMPWeightsLSTM(nn.Module):
         self.cnn_model                      = self.model_param.cnn_model
         self.cnn_model_train_param          = self.model_param.cnn_model_train_param
         self.cnn_model_model_param          = self.cnn_model_train_param.model_param
-        self.cnn_model_hidden_layer_sizes   = self.cnn_model_model_param.layer_sizes
+        self.cnn_model_hidden_layer_sizes   = self.cnn_model_model_param.hidden_layer_sizes
         self.max_segments                   = self.model_param.max_segments
         
         self.dropout                        = nn.Dropout(p = self.model_param.dropout_prob)
@@ -1372,7 +1372,7 @@ class SegmentPosNet(nn.Module):
         self.dmp_param          = self.model_param.dmp_param
         self.dof                = self.dmp_param.dof
         self.num_position       = self.model_param.max_segments + 1
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
 
         self.conv_incline       = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=256, kernel_size=10).to(DEVICE)
         self.conv_width         = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=128, kernel_size=(5, 49)).to(DEVICE)
@@ -1435,7 +1435,7 @@ class SegmentWeightNet(nn.Module):
         self.dmp_param          = self.model_param.dmp_param
         self.dof                = self.dmp_param.dof
         self.max_segments       = self.model_param.max_segments
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
 
         self.conv_incline       = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=256, kernel_size=10).to(DEVICE)
         self.conv_width         = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=128, kernel_size=(5, 49)).to(DEVICE)
@@ -1494,7 +1494,7 @@ class SegmentDMPCNN(nn.Module):
         self.max_segments       = self.model_param.max_segments
         self.num_position       = self.max_segments + 1
         self.dof                = self.dmp_param.dof
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
 
         self.conv_1             = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=256, kernel_size=5).to(DEVICE)
         self.conv_2             = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=256, kernel_size=10).to(DEVICE)
@@ -1577,13 +1577,13 @@ class CNNDeepDMP(nn.Module):
         self.max_segments       = 1
         self.num_position       = self.max_segments + 1
         self.dof                = self.dmp_param.dof
-        self.hidden_layer_sizes = self.model_param.layer_sizes
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
 
         self.conv_incline       = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=256, kernel_size=5).to(DEVICE)
         self.conv_width         = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=128, kernel_size=(5, 49)).to(DEVICE)
         self.conv_height        = nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=128, kernel_size=(49, 5)).to(DEVICE)
 
-        self.dropout = nn.Dropout(p = self.model_param.dropout_prob)
+        self.dropout            = nn.Dropout(p = self.model_param.dropout_prob)
         self.tanh               = torch.nn.Tanh().to(DEVICE)
         self.num_segments_softmax = nn.Softmax(dim = 1).to(DEVICE)
 
@@ -1636,3 +1636,120 @@ class CNNDeepDMP(nn.Module):
         goals = pos[:, 1]#.reshape(batch_s, 1, self.dof)
 
         return [y0, goals, w]
+
+class ImageInputProcessor(nn.Module):
+    def __init__(self, train_param):
+        super().__init__()
+        self.train_param        = train_param
+        self.model_param        = self.train_param.model_param
+        self.conv_layer_params  = self.model_param.conv_layer_params
+        self.hidden_layer_sizes = self.model_param.hidden_layer_sizes
+        self.output_size        = self.hidden_layer_sizes[-1]
+        
+        self.conv_pipelines = ModuleList()
+        for conv_pipeline in self.conv_layer_params:
+            convs = ModuleList()
+            for conv_param in conv_pipeline:
+                convs.append(nn.Conv2d(in_channels=self.model_param.image_dim[0], out_channels=conv_param.out_channels, kernel_size=conv_param.kernel_size).to(DEVICE))
+            self.conv_pipelines.append(convs)
+
+        _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
+        self.conv_output_size = self.forwardConv(_x).shape[1]
+        self.hidden_layer_sizes = [self.conv_output_size] + self.hidden_layer_sizes
+
+        self.dropout            = nn.Dropout(p = self.model_param.dropout_prob)
+        self.tanh               = torch.nn.Tanh().to(DEVICE)
+        
+        self.fc = ModuleList()
+        for idx in range(len(self.hidden_layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.hidden_layer_sizes[idx], self.hidden_layer_sizes[idx+1]).to(DEVICE))
+
+    def forwardConv(self, x):
+        conv_pipelines = []
+        for conv_pipeline in self.conv_pipelines:
+            input_x = x
+            for conv in conv_pipeline:
+                input_x = F.relu(F.max_pool2d(conv(input_x), inplace = False))
+            conv_pipelines.append(flatten(input_x))
+        x = cat(conv_pipelines, dim = 1).to(DEVICE)
+        return x
+
+    def forward(self, x):
+        if type(x) == dict:
+            # print(x['image'].shape)
+            x = self.forwardConv(x['image'])
+        else:
+            x = self.forwardConv(x)
+        for fc in self.fc[:-1]:
+            x = self.tanh(fc(x))
+            # x = self.tanh(fc(self.dropout(x)))
+        # x = self.fc[-1](x)
+        x = self.tanh(self.fc[-1](self.dropout(x)))
+        return x
+
+class DMPWeightDecoder(nn.Module):
+    def __init__(self, train_param, input_size):
+        self.train_param        = train_param
+        self.model_param        = self.train_param.model_param
+        self.decoder_layer_sizes = self.model_param.decoder_layer_sizes
+        self.decoder_layer_sizes = [input_size] + self.decoder_layer_sizes
+        self.dmp_param          = self.model_param.dmp_param
+        self.max_segments       = self.model_param.max_segments
+        self.dof                = self.dmp_param.dof
+        self.n_bf               = self.dmp_param.n_bf
+
+        self.dropout            = nn.Dropout(p = self.model_param.dropout_prob)
+        self.tanh               = torch.nn.Tanh().to(DEVICE)
+        
+        self.fc = ModuleList()
+        for idx in range(len(self.decoder_layer_sizes[:-1])):
+            self.fc.append(nn.Linear(self.decoder_layer_sizes[idx], self.decoder_layer_sizes[idx+1]).to(DEVICE))
+
+        self.output_w           = nn.Linear(self.decoder_layer_sizes[-1], self.max_segments * self.dof * self.n_bf).to(DEVICE)
+
+    def forward(self, x):
+        for fc in self.fc[:-1]:
+            x = self.tanh(fc(x))
+            # x = self.tanh(fc(self.dropout(x)))
+        # x = self.fc[-1](x)
+        x = self.tanh(self.fc[-1](self.dropout(x)))
+
+        output_w = self.output_w(x)
+        return output_w
+
+class SegmentedDMPNetwork(nn.Module):
+    def __init__(self, train_param):
+        self.train_param        = train_param
+        self.model_param        = self.train_param.model_param
+        self.dmp_param          = self.model_param.dmp_param
+        self.max_segments       = self.model_param.max_segments
+        self.dof                = self.dmp_param.dof
+        self.n_bf               = self.dmp_param.n_bf
+        self.latent_w_size      = self.model_param.latent_w_size
+
+        if self.model_param.input_mode == 'image':
+            self.input_processor    = ImageInputProcessor(self.train_param)
+        self.input_processor_output_size = self.input_processor.output_size
+        self.dmp_weight_decoder = DMPWeightDecoder(self.train_param, self.max_segments * self.latent_w_size)
+
+        output_y0_size          = self.max_segments * self.dof
+        output_goal_size        = self.max_segments * self.dof
+        output_tau_size         = self.max_segments
+
+        self.output_y0          = nn.Linear(self.input_processor_output_size, output_y0_size).to(DEVICE)
+        self.output_goal        = nn.Linear(self.input_processor_output_size, output_goal_size).to(DEVICE)
+        self.latent_w           = nn.Linear(self.input_processor_output_size, self.max_segments * self.latent_w_size).to(DEVICE)
+        self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
+
+    def forward(self, x):
+        batch_s     = x.shape[0]
+        x           = self.input_processor(x)
+
+        latent_w    = self.latent_w(self.tanh(x)).reshape(batch_s * self.max_segments, self.latent_w_size)
+
+        dmp_y0      = self.output_y0(x).reshape(batch_s, self.max_segments, self.dof)
+        dmp_goal    = self.output_goal(x).reshape(batch_s, self.max_segments, self.dof)
+        dmp_weights = self.dmp_weight_decoder(latent_w).reshape(batch_s, self.max_segments, self.dof, self.n_bf)
+        dmp_tau     = self.output_tau(x).reshape(batch_s, self.max_segments)
+
+        return [dmp_y0, dmp_goal, dmp_weights, dmp_tau]

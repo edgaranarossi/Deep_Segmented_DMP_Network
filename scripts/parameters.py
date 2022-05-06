@@ -31,10 +31,12 @@ class TrainingParameters:
         self.dataset_name = 'image_num-seg_y0_goals_ws_N_1000+seg=n-bf_20_ay_7_dt0.02_max-seg_15_padded+cut=dist_0.2_top-pad_0.2_side-pad_0.05_normal-dmp_limited_y_2022-04-08_01-07-33.pkl'
 
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
-        # self.data_limit     = None
+        self.data_limit     = None
         # self.data_limit     = 358 # 250
-        self.data_limit     = 100 # 70
+        # self.data_limit     = 100 # 70
         self.shuffle_data   = True
+
+        self.memory_percentage_limit = 95
 
         self.model_param = ModelParameters()
         self.model_name = str(self.model_param.model).split("'")[1].split(".")[-1]
@@ -97,7 +99,13 @@ class TrainingParameters:
         self.writeLog('Data Path : ' + self.dataset_path)
         self.writeLog('Data Limit : ' + str(self.data_limit))
         self.writeLog('Model Save Path : ' + self.model_save_path)
-        self.writeLog('Layer Sizes : ' + str(self.model_param.layer_sizes))
+        self.writeLog('Layer Sizes : ' + str(self.model_param.hidden_layer_sizes))
+
+class Conv2dParam:
+    def __init__(self, out_channels, kernel_size, description = None):
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.description = description
 
 class ModelParameters:
     def __init__(self):
@@ -107,22 +115,27 @@ class ModelParameters:
         self.image_dim              = (1, 50, 50)
         self.dropout_prob           = 0.
 
+        self.conv_layer_params = [[Conv2dParam(out_channels = 256, kernel_size = 5)],
+                                  [Conv2dParam(out_channels = 256, kernel_size = 10)],
+                                  [Conv2dParam(out_channels = 256, kernel_size = (5, 49), description = 'width')],
+                                  [Conv2dParam(out_channels = 256, kernel_size = (49, 5), description = 'height')]]
+
         # Define hidden layers sizes (No need to define output layer size)
-        # self.layer_sizes            = [4096, 2048, 2048]
-        # self.layer_sizes            = [2048, 2048, 2048]
-        self.layer_sizes            = [1024, 1024, 1024, 512, 64]
-        # self.layer_sizes            = [1024, 512, 256, 128, 64]
-        # self.layer_sizes            = [1024, 1024, 1024]
-        # self.layer_sizes            = [256, 256, 256]
-        # self.layer_sizes            = [128, 128, 128]
-        # self.layer_sizes            = [128, 64, 32]
-        # self.layer_sizes            = [64, 64, 64]
-        # self.layer_sizes            = [2048, 2048, 1024, 512, 256, 128, 64]
-        # self.layer_sizes            = [512, 128]
-        # self.layer_sizes            = [200, 50]
-        # self.layer_sizes            = [100, 8]
-        # self.layer_sizes            = [1600, 1500, 1000, 600, 200, 50]
-        # self.layer_sizes            = [1600, 1500, 1000, 600, 200, 100]
+        # self.hidden_layer_sizes            = [4096, 2048, 2048]
+        # self.hidden_layer_sizes            = [2048, 2048, 2048]
+        self.hidden_layer_sizes             = [1024, 1024, 1024, 512, 64]
+        # self.hidden_layer_sizes            = [1024, 512, 256, 128, 64]
+        # self.hidden_layer_sizes            = [1024, 1024, 1024]
+        # self.hidden_layer_sizes            = [256, 256, 256]
+        # self.hidden_layer_sizes            = [128, 128, 128]
+        # self.hidden_layer_sizes            = [128, 64, 32]
+        # self.hidden_layer_sizes            = [64, 64, 64]
+        # self.hidden_layer_sizes            = [2048, 2048, 1024, 512, 256, 128, 64]
+        # self.hidden_layer_sizes            = [512, 128]
+        # self.hidden_layer_sizes            = [200, 50]
+        # self.hidden_layer_sizes            = [100, 8]
+        # self.hidden_layer_sizes            = [1600, 1500, 1000, 600, 200, 50]
+        # self.hidden_layer_sizes            = [1600, 1500, 1000, 600, 200, 100]
 
         """
         Network configurations:
@@ -358,16 +371,28 @@ class ModelParameters:
 
             self.max_segments           = 1
             self.dmp_param              = DMPParameters(n_bf = 300, dt = 0.001, ay = 100)
-            
+        
+        elif self.network_configuration == '17':
+            self.model                  = SegmentedDMPNetwork
+
+            self.input_mode             = ['image']
+            self.output_mode            = ['segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
+            self.keys_to_normalize      = ['segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
+            self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE']
+
+            self.max_segments           = 10
+            self.dmp_param              = DMPParameters()
+            self.latent_w_size          = 2
+            self.decoder_layer_sizes    = [64, 128, 256]
         else:
             raise ValueError('Wrong network configuration input')
 
 class DMPParameters:
     def __init__(self, dof = None, n_bf = None, dt = None, ay = None, by = None, tau = None):
-        self.dof            = 2 if dof == None else dof
+        self.dof            = 3 if dof == None else dof
         # self.n_bf           = 3 if n_bf == None else n_bf
-        self.n_bf           = 20 if n_bf == None else n_bf
-        self.dt             = .02 if dt == None else dt
+        self.n_bf           = 30 if n_bf == None else n_bf
+        self.dt             = .015 if dt == None else dt
         self.tau            = 1. if tau == None else tau
         self.scale          = None # NEED to be defined. See dataset_importer
 

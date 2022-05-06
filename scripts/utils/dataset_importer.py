@@ -41,6 +41,7 @@ class Scaler:
 class PickleDataLoader:
     def __init__(self, train_param):
         self.train_param        = train_param
+        self.memory_limit       = self.train_param.memory_percentage_limit
         self.model_param        = self.train_param.model_param
         self.data_limit         = self.train_param.data_limit
         self.keys_to_normalize  = self.model_param.keys_to_normalize
@@ -52,6 +53,13 @@ class PickleDataLoader:
         self.max_segments       = None
         self.combined_inputs    = []
         self.combined_outputs   = []
+
+        missing_keys = []
+        for key in self.input_mode:
+            if key not in self.data: missing_keys.append(key)
+        for key in self.output_mode:
+            if key not in self.data: missing_keys.append(key)
+        assert len(missing_keys) == 0, str(missing_keys) + ' missing from dataset'
 
         for key in self.keys_to_normalize:
             self.scaler[key] = Scaler(self.data[key])
@@ -73,8 +81,8 @@ class PickleDataLoader:
                 self.max_segments = self.data[key]
         
         for idx in range(self.data_length):
-            if psutil.virtual_memory().percent > 90:
-                raise MemoryError("Out of Memory (>90%)")
+            if psutil.virtual_memory().percent > self.memory_limit - 5:
+                raise MemoryError('Out of Memory (>{}%)'.format(self.memory_limit - 5))
 
             inputs = {}
             for key in self.input_mode:

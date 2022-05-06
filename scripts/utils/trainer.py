@@ -22,6 +22,7 @@ class Trainer:
     def __init__(self, model : torch.nn.Module, train_param, save_path = None, log_writer_path = None, writer = None):
         self.model = model
         self.train_param = train_param
+        self.memory_limit = self.train_param.memory_percentage_limit
         self.model_param = self.train_param.model_param
         self.dmp_param   = self.model_param.dmp_param
         self.input_mode = self.model_param.input_mode
@@ -437,9 +438,9 @@ class Trainer:
         plt.show()
 
     def checkStoppingCondition(self):
-        if psutil.virtual_memory().percent > 97:
+        if psutil.virtual_memory().percent > self.memory_limit:
             self.train = False
-            self.train_param.writeLog('\nStopping Reason : Out of Memory (>97%)')
+            self.train_param.writeLog('\nStopping Reason : Out of Memory (>{}%)'.format(self.memory_limit))
         if self.train_param.max_epoch != None and self.epoch >= self.train_param.max_epoch:
             self.train = False
             self.train_param.writeLog('\nStopping Reason : Maximum epoch reached')

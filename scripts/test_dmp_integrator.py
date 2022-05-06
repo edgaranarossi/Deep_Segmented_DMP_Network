@@ -24,7 +24,7 @@ if __name__ == '__main__':
     dmp_param   = model_param.dmp_param
     input_size = int((2 * dmp_param.dof) + (dmp_param.n_bf * dmp_param.dof))
     output_size = int(dmp_param.dof / dmp_param.dt)
-    model = DMPIntegratorNet(train_param, input_size, output_size, model_param.layer_sizes)
+    model = DMPIntegratorNet(train_param, input_size, output_size, model_param.hidden_layer_sizes)
     model.load_state_dict(torch.load(join(MODEL_PATH, PARAMETER_TO_LOAD + '_net_parameters')))
     print(('Importing ' + FILE_NAME + ' ...'))
     file_data_loader = PickleDataLoader(FILE_PATH)
