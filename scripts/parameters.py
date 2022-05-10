@@ -11,8 +11,8 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class TrainingParameters:
     def __init__(self):
-        # self.root_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
-        self.root_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs'
+        self.root_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
+        # self.root_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs'
         self.init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # Dataset parameter
@@ -36,6 +36,7 @@ class TrainingParameters:
         # self.data_limit     = 358 # 250
         # self.data_limit     = 100 # 70
         self.shuffle_data   = True
+        self.scaler         = None # NEED to be defined. See dataset_importer
 
         self.memory_percentage_limit = 95
 
@@ -54,13 +55,13 @@ class TrainingParameters:
         # Optimizer parameters
         self.optimizer_type = 'adam'
         self.sdtw_gamma = 1e-4
-        self.learning_rate = 5e-5
+        self.learning_rate = 1e-4
         self.eps = 5e-3
         self.weight_decay = None
 
         # Training parameters
         self.max_epoch = int(2e4)
-        self.max_val_fail = 100
+        self.max_val_fail = 200
         self.validation_interval = 1
         self.log_interval = 1
         if self.model_param.network_configuration in ['1', '2']:
@@ -70,7 +71,7 @@ class TrainingParameters:
         self.plot_num = 5
 
         # Data parameters
-        self.batch_size = 5
+        self.batch_size = 50
         self.training_ratio = 7
         self.validation_ratio = 2
         self.test_ratio = 1
@@ -116,15 +117,17 @@ class ModelParameters:
         self.image_dim              = (1, 100, 100)
         self.dropout_prob           = 0.
 
-        self.conv_layer_params = [[Conv2dParam(out_channels = 256, kernel_size = 5)],
-                                  [Conv2dParam(out_channels = 256, kernel_size = 10)],
-                                  [Conv2dParam(out_channels = 256, kernel_size = (5, 50), description = 'width')],
-                                  [Conv2dParam(out_channels = 256, kernel_size = (50, 5), description = 'height')]]
+        self.conv_layer_params = [[Conv2dParam(out_channels = 256, kernel_size = 10)],
+                                #   [Conv2dParam(out_channels = 128, kernel_size = 20)],
+                                  [Conv2dParam(out_channels = 128, kernel_size = (5, 99), description = 'width')],
+                                  [Conv2dParam(out_channels = 128, kernel_size = (99, 5), description = 'height')]]
 
         # Define hidden layers sizes (No need to define output layer size)
         # self.hidden_layer_sizes            = [4096, 2048, 2048]
         # self.hidden_layer_sizes            = [2048, 2048, 2048]
         self.hidden_layer_sizes             = [1024, 1024, 1024, 512, 64]
+        # self.hidden_layer_sizes             = [512, 512, 512, 256, 64]
+        # self.hidden_layer_sizes             = [512, 512, 512, 512, 512, 256, 64]
         # self.hidden_layer_sizes            = [1024, 512, 256, 128, 64]
         # self.hidden_layer_sizes            = [1024, 1024, 1024]
         # self.hidden_layer_sizes            = [256, 256, 256]
@@ -138,6 +141,7 @@ class ModelParameters:
         # self.hidden_layer_sizes            = [1600, 1500, 1000, 600, 200, 50]
         # self.hidden_layer_sizes            = [1600, 1500, 1000, 600, 200, 100]
 
+        self.network_configuration  = '19'
         """
         Network configurations:
         1: CNNDMPNet (outputs scaled)
@@ -157,8 +161,9 @@ class ModelParameters:
         15: SegmentDMPCNN
         16: CNNDeepDMP
         17: SegmentedDMPNetwork
+        18: SegmentedDMPJoinedNetwork
+        19: NormalDMPJoinedNetwork
         """
-        self.network_configuration  = '17'
 
         if self.network_configuration == '1':
             self.model = CNNDMPNet
@@ -384,8 +389,29 @@ class ModelParameters:
 
             self.max_segments           = 10
             self.dmp_param              = DMPParameters()
-            self.latent_w_size          = 2
+            self.latent_w_size          = 10
             self.decoder_layer_sizes    = [64, 128, 256]
+        
+        elif self.network_configuration == '18':
+            self.model                  = SegmentedDMPJoinedNetwork
+
+            self.input_mode             = ['image']
+            self.output_mode            = ['segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
+            self.keys_to_normalize      = ['segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
+            self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE']
+
+            self.max_segments           = 10
+            self.dmp_param              = DMPParameters(dof = 3, n_bf = 30)
+        
+        elif self.network_configuration == '19':
+            self.model                  = NormalDMPJoinedNetwork
+
+            self.input_mode             = ['image']
+            self.output_mode            = ['normal_dmp_y0', 'normal_dmp_goal', 'normal_dmp_w']
+            self.keys_to_normalize      = ['normal_dmp_y0', 'normal_dmp_goal', 'normal_dmp_w']
+            self.loss_type              = ['MSE', 'MSE', 'MSE']
+
+            self.dmp_param              = DMPParameters(dof = 3, n_bf = 300)
         else:
             raise ValueError('Wrong network configuration input')
 
@@ -396,7 +422,6 @@ class DMPParameters:
         self.n_bf           = 30 if n_bf == None else n_bf
         self.dt             = .015 if dt == None else dt
         self.tau            = 1. if tau == None else tau
-        self.scale          = None # NEED to be defined. See dataset_importer
 
         # Canonical System Parameters
         self.cs_runtime     = 1.0

@@ -139,7 +139,7 @@ def rescaleOutput(preds, keys_to_normalize, scaler):
     
 #     rescaled_pred = []
 #     for idx, key in enumerate(train_param.model_param.keys_to_normalize):
-#         rescaled_pred.append(train_param.model_param.dmp_param.scale[key].denormalize(preds[idx][0]))
+#         rescaled_pred.append(train_param.scale[key].denormalize(preds[idx][0]))
     
 #     num_segments_pred = int(torch.round(rescaled_pred[0]).reshape(1).item())
 #     y0_pred = rescaled_pred[1]
@@ -173,8 +173,8 @@ while(True):
     preds_segment = model_segment(from_numpy(processed_img.reshape(1, 1, IMG_SIZE, IMG_SIZE)).to(DEVICE).float())
     preds_deep_dmp = model_deep_dmp(from_numpy(processed_img.reshape(1, 1, IMG_SIZE, IMG_SIZE)).to(DEVICE).float())
     # print(preds_deep_dmp[0].shape, preds_deep_dmp[1].shape)
-    rescaled_pred_segment = rescaleOutput(preds_segment, train_param_segment.model_param.keys_to_normalize, train_param_segment.model_param.dmp_param.scale)
-    rescaled_pred_deep_dmp = rescaleOutput(preds_deep_dmp, train_param_deep_dmp.model_param.keys_to_normalize, train_param_deep_dmp.model_param.dmp_param.scale)
+    rescaled_pred_segment = rescaleOutput(preds_segment, train_param_segment.model_param.keys_to_normalize, train_param_segment.scale)
+    rescaled_pred_deep_dmp = rescaleOutput(preds_deep_dmp, train_param_deep_dmp.model_param.keys_to_normalize, train_param_deep_dmp.scale)
     y_pred_segment = generateDMPSegments(train_param_segment, rescaled_pred_segment, image = processed_img, plot = False, dt = DT)
     y_pred_deep_dmp = generateDMPSegments(train_param_deep_dmp, rescaled_pred_deep_dmp, image = processed_img, plot = False, dt = DT_DEEP_DMP, deep_dmp = True)
 

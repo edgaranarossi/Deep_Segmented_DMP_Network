@@ -1757,3 +1757,69 @@ class SegmentedDMPNetwork(nn.Module):
         dmp_tau     = self.output_tau(x).reshape(batch_s, self.max_segments)
 
         return [dmp_y0, dmp_goal, dmp_weights, dmp_tau]
+
+class SegmentedDMPJoinedNetwork(nn.Module):
+    def __init__(self, train_param):
+        super().__init__()
+        self.train_param        = train_param
+        self.model_param        = self.train_param.model_param
+        self.dmp_param          = self.model_param.dmp_param
+        self.max_segments       = self.model_param.max_segments
+        self.dof                = self.dmp_param.dof
+        self.n_bf               = self.dmp_param.n_bf
+
+        if self.model_param.input_mode == ['image']:
+            self.input_processor    = ImageInputProcessor(self.train_param)
+        self.input_processor_output_size = self.input_processor.output_size
+
+        output_y0_size          = self.max_segments * self.dof
+        output_goal_size        = self.max_segments * self.dof
+        output_w_size           = self.max_segments * self.dof * self.n_bf
+        output_tau_size         = self.max_segments
+
+        self.output_y0          = nn.Linear(self.input_processor_output_size, output_y0_size).to(DEVICE)
+        self.output_goal        = nn.Linear(self.input_processor_output_size, output_goal_size).to(DEVICE)
+        self.output_w           = nn.Linear(self.input_processor_output_size, output_w_size).to(DEVICE)
+        self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
+
+    def forward(self, x):
+        x           = self.input_processor(x)
+        batch_s     = x.shape[0]
+
+        dmp_y0      = self.output_y0(x).reshape(batch_s, self.max_segments, self.dof)
+        dmp_goal    = self.output_goal(x).reshape(batch_s, self.max_segments, self.dof)
+        dmp_weights = self.output_w(x).reshape(batch_s, self.max_segments, self.dof, self.n_bf)
+        dmp_tau     = self.output_tau(x).reshape(batch_s, self.max_segments)
+
+        return [dmp_y0, dmp_goal, dmp_weights, dmp_tau]
+
+class NormalDMPJoinedNetwork(nn.Module):
+    def __init__(self, train_param):
+        super().__init__()
+        self.train_param        = train_param
+        self.model_param        = self.train_param.model_param
+        self.dmp_param          = self.model_param.dmp_param
+        self.dof                = self.dmp_param.dof
+        self.n_bf               = self.dmp_param.n_bf
+
+        if self.model_param.input_mode == ['image']:
+            self.input_processor    = ImageInputProcessor(self.train_param)
+        self.input_processor_output_size = self.input_processor.output_size
+
+        output_y0_size          = self.dof
+        output_goal_size        = self.dof
+        output_w_size           = self.dof * self.n_bf
+
+        self.output_y0          = nn.Linear(self.input_processor_output_size, output_y0_size).to(DEVICE)
+        self.output_goal        = nn.Linear(self.input_processor_output_size, output_goal_size).to(DEVICE)
+        self.output_w           = nn.Linear(self.input_processor_output_size, output_w_size).to(DEVICE)
+        
+    def forward(self, x):
+        x           = self.input_processor(x)
+        batch_s     = x.shape[0]
+
+        dmp_y0      = self.output_y0(x).reshape(batch_s, self.dof)
+        dmp_goal    = self.output_goal(x).reshape(batch_s, self.dof)
+        dmp_weights = self.output_w(x).reshape(batch_s, self.dof, self.n_bf)
+
+        return [dmp_y0, dmp_goal, dmp_weights]

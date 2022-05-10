@@ -38,6 +38,18 @@ class Scaler:
                              self.range_old.min
         return denormalized_data
 
+def ndarray_to_str(arr):
+    assert len(arr.shape) == 2
+    s = ''
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            s += str(arr[i, j])
+            s += ','
+        s = s[:-1]
+        s += ';'
+    return s
+
+
 class PickleDataLoader:
     def __init__(self, train_param):
         self.train_param        = train_param
@@ -97,11 +109,16 @@ class PickleDataLoader:
             self.combined_inputs.append(inputs)
             
             outputs = {}
-            for key in self.output_mode:
-                if isinstance(self.data[key], ndarray):
+            for key in self.data:
+                if isinstance(self.data[key], ndarray) and key != 'original_trajectory':
                     outputs[key] = from_numpy(self.data[key][idx]).float().to(DEVICE)
-                else:
-                    outputs[key] = self.data[key][idx]
+                elif not isinstance(self.data[key], float) and not isinstance(self.data[key], int) and not isinstance(self.data[key], tuple):
+                    if key == 'original_trajectory':
+                        outputs[key] = ndarray_to_str(self.data[key][idx])
+                    else:
+                        outputs[key] = self.data[key][idx]
+                else: 
+                    outputs[key] = self.data[key]
             self.combined_outputs.append(outputs)
 
         if self.train_param.shuffle_data:

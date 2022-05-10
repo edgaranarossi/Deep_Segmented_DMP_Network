@@ -22,10 +22,11 @@ if __name__ == '__main__':
     train_param.writeLog(train_param.dataset_name + ' imported')
 #%%
     train_param.writeLog('Splitting dataset')
-    data_loaders, scale = \
+    data_loaders, scaler = \
         file_data_loader.getDataLoader(data_ratio = train_param.data_ratio,
                                       batch_size = train_param.batch_size)
-    dmp_param.scale = scale
+    pkl.dump(data_loaders, open(join(train_param.model_save_path, "data_loaders.pkl"),"wb"))
+    train_param.scaler = scaler
     train_param.writeLog('Dataset split')
 
     train_param.writeLog('Saving training parameters')

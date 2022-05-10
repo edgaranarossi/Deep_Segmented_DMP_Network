@@ -44,11 +44,11 @@ pred_deep_dmp = model_deep_dmp(img)
 
 rescaled_pred_segment = []
 for idx, key in enumerate(model_param_segment.keys_to_normalize):
-    rescaled_pred_segment.append(dmp_param_segment.scale[key].denormalize(pred_segment[idx][0]))
+    rescaled_pred_segment.append(train_param_segment.scaler[key].denormalize(pred_segment[idx][0]))
 
 rescaled_pred_deep_dmp = []
 for idx, key in enumerate(model_param_deep_dmp.keys_to_normalize):
-    rescaled_pred_deep_dmp.append(dmp_param_deep_dmp.scale[key].denormalize(pred_deep_dmp[idx][0]))
+    rescaled_pred_deep_dmp.append(train_param_deep_dmp.scaler[key].denormalize(pred_deep_dmp[idx][0]))
     
 num_segments_pred = int(torch.round(rescaled_pred_segment[0]).reshape(1).item())
 
@@ -110,11 +110,11 @@ pred_deep_dmp = model_deep_dmp(img)
 
 rescaled_pred_segment = []
 for idx, key in enumerate(model_param_segment.keys_to_normalize):
-    rescaled_pred_segment.append(dmp_param_segment.scale[key].denormalize(pred_segment[idx]))
+    rescaled_pred_segment.append(train_param_segment.scaler[key].denormalize(pred_segment[idx]))
 
 rescaled_pred_deep_dmp = []
 for idx, key in enumerate(model_param_deep_dmp.keys_to_normalize):
-    rescaled_pred_deep_dmp.append(dmp_param_deep_dmp.scale[key].denormalize(pred_deep_dmp[idx]))
+    rescaled_pred_deep_dmp.append(train_param_deep_dmp.scaler[key].denormalize(pred_deep_dmp[idx]))
 #%%
 all_pos_pred = cat([rescaled_pred_segment[1].reshape(-1, 1, dmp_param_segment.dof, 1), rescaled_pred_segment[2].reshape(-1, model_param_segment.max_segments, dmp_param_segment.dof, 1)], dim = 1)
 y0s_pred = all_pos_pred[:, :-1]

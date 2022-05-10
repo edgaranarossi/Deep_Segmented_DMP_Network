@@ -18,7 +18,7 @@ class DMPIntegrationMSE:
         self.cs_runtime = self.dmp_param.cs_runtime
         self.cs_ax = self.dmp_param.cs_ax
         self.tau = self.dmp_param.tau
-        self.scale = self.dmp_param.scale
+        self.scale = self.train_param.scale
         self.timesteps = self.dmp_param.timesteps
 
     def __call__(self, dmp_params, dmp_traj = None, rot_deg = None):

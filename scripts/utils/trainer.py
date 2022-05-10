@@ -50,7 +50,7 @@ class Trainer:
                                                       n_bfs = self.dmp_param.n_bf, 
                                                       ay = self.dmp_param.ay, 
                                                       dt = self.dmp_param.dt)
-            self.scaler = self.dmp_param.scale
+            self.scaler = self.train_param.scale
             
 
         if self.train_param.optimizer_type == 'adam':
@@ -59,6 +59,7 @@ class Trainer:
                                               weight_decay = self.train_param.weight_decay if self.train_param.weight_decay != None else 0, 
                                               eps = self.train_param.eps if self.train_param.eps != None else 1e-08,
                                               amsgrad = 0)
+        # input('init complete')
 
     def train(self, data_loaders : List[torch.utils.data.DataLoader]):
         train_loaders = data_loaders[0]
@@ -81,6 +82,7 @@ class Trainer:
         while self.train:
             try:
                 # Train
+                # input('train #3')
                 _, train_losses = self.getLosses(train_loaders)
                 # print(train_losses)
                 # print(train_losses)
@@ -161,8 +163,7 @@ class Trainer:
                         loss = loss.mean()
                     loss_str += ' | L' + str(i+1) + ': ' + str(np.round(loss.item(), 5).item())
                     total_loss = total_loss + loss
-                # print(loss_str)
-
+                print(loss_str)
                 total_loss.backward()
                 self.optimizer.step()
                 losses.append(total_loss)
