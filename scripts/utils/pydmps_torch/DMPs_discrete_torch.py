@@ -3,6 +3,12 @@ from torch import ones, zeros, linspace, exp, clone, sum, cos, sin, tensor, cat,
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+"""
+Based on studywolf's pydmps
+https://github.com/studywolf/pydmps
+https://pypi.org/project/pydmps/
+"""
+
 class DMPs_discrete_torch:
     def __init__(self, n_dmps, n_bfs, ay, dt, by = None):
         self.dof = n_dmps
@@ -53,9 +59,13 @@ class DMPs_discrete_torch:
         psi = (exp(-self.h * (self.x - self.c)**2))
         f = self.frontTerm() * (self.w @ psi) / sum(psi, dim = 1).reshape(self.batch_s, 1, 1)
 
-        self.ddy = (self.ay * (self.by * (self.goal - self.rotateCoord(self.y, self.y0, -rot_deg)) - self.dy / self.tau) + f) * self.tau
+        # self.ddy = (self.ay * (self.by * (self.goal - self.rotateCoord(self.y, self.y0, -rot_deg)) - self.dy / self.tau) + f) * self.tau
+        # self.dy = self.dy + (self.ddy * self.tau * self.dt)
+        # self.y = self.rotateCoord(self.rotateCoord(self.y, self.y0, -rot_deg) + (self.dy * self.dt), self.y0, rot_deg)
+
+        self.ddy = (self.ay * (self.by * (self.goal - self.y) - self.dy / self.tau) + f) * self.tau
         self.dy = self.dy + (self.ddy * self.tau * self.dt)
-        self.y = self.rotateCoord(self.rotateCoord(self.y, self.y0, -rot_deg) + (self.dy * self.dt), self.y0, rot_deg)
+        self.y = self.y + (self.dy * self.dt)
 
         self.y_track[:, t] = self.y.reshape(self.batch_s, self.dof)
         self.dy_track[:, t] = self.dy.reshape(self.batch_s, self.dof)
@@ -69,6 +79,7 @@ class DMPs_discrete_torch:
         return self.term
 
     def rotateCoord(self, y, y0, rot_deg):
+        # print(y.shape, y0.shape)
         px = y[:, 0]
         py = y[:, 1]
         

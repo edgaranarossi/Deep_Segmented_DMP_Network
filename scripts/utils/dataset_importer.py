@@ -14,7 +14,10 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class MinMax:
     def __init__(self, min, max):
-        self.min = min
+        if min == max:
+            self.min = min - 0.1
+        else:
+            self.min = min
         self.max = max
 
 class Scaler:
@@ -49,6 +52,15 @@ def ndarray_to_str(arr):
         s += ';'
     return s
 
+def str_to_ndarray(s):
+    arr = []
+    for line in s.split(';'):
+        if len(line) > 0:
+            l = []
+            for w in line.split(','):
+                l.append(float(w))
+            arr.append(l)
+    return np.array(arr)
 
 class PickleDataLoader:
     def __init__(self, train_param):
@@ -74,8 +86,9 @@ class PickleDataLoader:
         assert len(missing_keys) == 0, str(missing_keys) + ' missing from dataset'
 
         for key in self.keys_to_normalize:
-            self.scaler[key] = Scaler(self.data[key])
-            self.data[key] = self.scaler[key].normalized_data
+            if key in self.data:
+                self.scaler[key] = Scaler(self.data[key])
+                self.data[key] = self.scaler[key].normalized_data
         
         for key in self.data:
             if isinstance(self.data[key], list) or isinstance(self.data[key], ndarray):
@@ -110,12 +123,34 @@ class PickleDataLoader:
             
             outputs = {}
             for key in self.data:
-                if isinstance(self.data[key], ndarray) and key != 'original_trajectory':
+                # print(key)
+                # print(key, self.data[key], type(self.data[key]))
+                # print(not isinstance(self.data[key], float))
+                # print(not isinstance(self.data[key], int))
+                # print(not isinstance(self.data[key], tuple))
+                if isinstance(self.data[key], ndarray) and key not in ['original_trajectory', 
+                                                                       'processed_trajectory', 
+                                                                       'rotated_trajectory', 
+                                                                       'normal_dmp_trajectory', 
+                                                                       'normal_dmp_L_trajectory', 
+                                                                       'normal_dmp_trajectory_accurate', 
+                                                                       'segmented_dmp_trajectory', 
+                                                                       'rotation_order', 
+                                                                       'rotation_degrees']:
                     outputs[key] = from_numpy(self.data[key][idx]).float().to(DEVICE)
-                elif not isinstance(self.data[key], float) and not isinstance(self.data[key], int) and not isinstance(self.data[key], tuple):
-                    if key == 'original_trajectory':
-                        outputs[key] = ndarray_to_str(self.data[key][idx])
+                elif not isinstance(self.data[key], float) and \
+                     not isinstance(self.data[key], int) and \
+                     not isinstance(self.data[key], np.int64) and \
+                     not isinstance(self.data[key], tuple):
+                    if key in ['original_trajectory', 'processed_trajectory', 'rotated_trajectory', 'normal_dmp_trajectory', 'normal_dmp_L_trajectory', 'normal_dmp_trajectory_accurate', 'segmented_dmp_trajectory']:
+                        if type(self.data[key][idx]) != str:
+                            outputs[key] = ndarray_to_str(self.data[key][idx])
+                        else:
+                            outputs[key] = self.data[key][idx]
+                    elif key in ['rotation_order', 'rotation_degrees']:
+                        outputs[key] = self.data[key]
                     else:
+                        # print(key, not isinstance(self.data[key], float) and not isinstance(self.data[key], int) and not isinstance(self.data[key], tuple))
                         outputs[key] = self.data[key][idx]
                 else: 
                     outputs[key] = self.data[key]
