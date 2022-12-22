@@ -82,7 +82,7 @@ class TrainingParameters:
         # self.dataset_name = 'stacking_[1, 2, 3][num-data-3000][max-seg-24][normal-dmp_bf-48_ay-25_dt-0.001][seg-dmp_bf-2_ay-3.4_dt-0.024][block_permute-False_random-pos-True][target_random-pos-True][2022-09-11_00-40-48].pkl'
 
         self.dataset_dir = join(self.root_dir, 'data/pkl/pepper_shaking')
-        self.dataset_name = 'pepper_shaking_num.55_dof.2_dsdnet[seg.3-bf.50-ay.15-dt.0.003]_cimednet[bf.150-ay.25-dt.0.001]_cimednet_L[bf.1000-ay.25-dt.0.001]_2022-12-02_16-04-08.pkl'
+        self.dataset_name = 'pepper_shaking_num.59_dof.2_dsdnet[seg.3-bf.50-ay.15-dt.0.003]_cimednet[bf.150-ay.25-dt.0.001]_cimednet_L[bf.1000-ay.25-dt.0.001]_2022-12-05_19-12-08.pkl'
 
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         self.data_limit     = None
@@ -117,7 +117,7 @@ class TrainingParameters:
         # self.model_type = 'DSDPosNet'
         
         if 'CIMEDNet' in self.model_type:
-            self.data_loaders_model_name = 'Model_DSDNetV1_2022-12-02_16-39-11'
+            self.data_loaders_model_name = 'Model_DSDNetV1_2022-12-05_19-37-02'
 
         # self.load_model_name = 'Model_DSDNetV2_2022-08-09_21-25-20'
         # self.data_loaders_model_name = 'Model_DSDNetV1_2022-09-11_15-58-06'
@@ -225,15 +225,15 @@ class ModelParameters:
 
         # stacking
 
-        self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
-                                  [Conv2dParam(out_channels = 128, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
-                                  [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
+        # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
+        #                           [Conv2dParam(out_channels = 128, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
+        #                           [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
                                 #   [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
-                                  ]
+                                #   ]
 
         # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = (self.image_dim[1] - 10, 20), description = 'width')],
         #                           [Conv2dParam(out_channels = 128, kernel_size = (20, self.image_dim[2] - 10), description = 'height')]]
-        self.max_pool_size = 2
+        # self.max_pool_size = 2
 
         # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = (self.image_dim[1] - 10, 20), description = 'width')],
         #                           [Conv2dParam(out_channels = 128, kernel_size = (20, self.image_dim[2] - 10), description = 'height')],
@@ -242,6 +242,16 @@ class ModelParameters:
         # self.conv_layer_params = [[Conv2dParam(out_channels = 32, kernel_size = 10)],
         #                           [Conv2dParam(out_channels = 32, kernel_size = 20)]]
                                 #   [Conv2dParam(out_channels = 128, kernel_size = 10)]]
+
+        # pepper
+
+        self.conv_layer_params = [[Conv2dParam(out_channels = 64, kernel_size = 10), 
+                                   Conv2dParam(out_channels = 64, kernel_size = 10), 
+                                   Conv2dParam(out_channels = 64, kernel_size = 10)]]
+
+        # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = (self.image_dim[1] - 10, 20), description = 'width')],
+        #                           [Conv2dParam(out_channels = 128, kernel_size = (20, self.image_dim[2] - 10), description = 'height')]]
+        self.max_pool_size = 2
 
         # Define hidden layers sizes (No need to define output layer size)
         # self.hidden_layer_sizes            = [4096, 4096, 4096, 2048, 256]

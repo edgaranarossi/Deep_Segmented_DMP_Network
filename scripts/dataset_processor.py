@@ -120,6 +120,7 @@ class DatasetGenerator:
         self.parseMotion(remove_start_end, rotate)
         
     def parseMotion(self, remove_start_end, rotate):
+        print('Parsing motion...')
         self.segmented_motions = []
         
         segment_template = deepcopy(self.motions[0])
@@ -213,6 +214,7 @@ class DatasetGenerator:
         # return self.final_DATA
         
     def generateDMPParameters(self):
+        print('Generating DMP parameters...')
         for i in range(self.data_num):
             dsdnet_y0s = []
             dsdnet_goals = []
@@ -440,7 +442,7 @@ if __name__=='__main__':
                        dsdnet_dmp_param = dsdnet_dmp_param,
                        cimednet_dmp_param = cimednet_dmp_param,
                        cimednet_dmp_L_param = cimednet_dmp_L_param,
-                       w_mean_filter = 100)
+                       w_mean_filter = 500)
     
     print('\nMin w = {}\nMax w = {}'.format(generator.final_DATA['segmented_dmp_w'].min(), generator.final_DATA['segmented_dmp_w'].max()))
     

@@ -274,11 +274,11 @@ if __name__=='__main__':
         num_objects = [1]*33 + [2]*33 + [3]*33
         
     elif task == 'pepper_shaking':
-        dsdnet_name = 'Model_DSDNetV1_2022-12-02_16-39-11'
-        # cimednet_name = None
-        cimednet_name = 'Model_CIMEDNet_2022-12-02_16-39-51'
-        # cimednet_L_name = None
-        cimednet_L_name = 'Model_CIMEDNet_2022-12-02_16-39-55'
+        dsdnet_name = 'Model_DSDNetV1_2022-12-05_19-37-02'
+        cimednet_name = None
+        cimednet_name = 'Model_CIMEDNet_2022-12-05_19-41-42'
+        cimednet_L_name = None
+        cimednet_L_name = 'Model_CIMEDNet_2022-12-05_19-41-58'
 
 
     root_model_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/models'
@@ -352,9 +352,9 @@ if __name__=='__main__':
     SHOW_SIDE = True
     SHOW_POS = True
     
-    idx = 2
-    connect_segment = False
-    # connect_segment = True
+    idx = 5
+    # connect_segment = False
+    connect_segment = True
     
     # while idx < to_test:
     if 1:
@@ -886,16 +886,16 @@ if __name__=='__main__':
             # if cimednet_L_name != None: cimednet_L_y_plot[:,2] -= cimednet_L_y_plot[0,2]
             # original_traj_plot[:,2] -= original_traj_plot[0,2]
             
-            SUCCESS_THRESHOLD = 22
+            # SUCCESS_THRESHOLD = 22
             # dsdnet_y_plot *= multiplier
-            if cimednet_name != None: cimednet_y_plot *= multiplier
-            if cimednet_L_name != None: cimednet_L_y_plot *= multiplier
+            # if cimednet_name != None: cimednet_y_plot *= multiplier
+            # if cimednet_L_name != None: cimednet_L_y_plot *= multiplier
             # original_traj_plot *= multiplier
             # dsdnet_y_plot += padding
-            if cimednet_name != None: 
-                cimednet_y_plot += padding
-            if cimednet_L_name != None: 
-                cimednet_L_y_plot += padding
+            # if cimednet_name != None: 
+            #     cimednet_y_plot += padding
+            # if cimednet_L_name != None: 
+            #     cimednet_L_y_plot += padding
             # original_traj_plot += padding
             
             plt.figure(figsize = (fig_size, fig_size/2 * 3))

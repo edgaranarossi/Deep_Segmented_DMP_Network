@@ -58,7 +58,8 @@ class Trainer:
                                               amsgrad = 0)
         # input('init complete')
 
-    def train(self, data_loaders : List[torch.utils.data.DataLoader]):
+    def train(self, data_loaders : List[torch.utils.data.DataLoader], show_tau_error = True):
+        self.show_tau_error = show_tau_error
         train_loaders = data_loaders[0]
         val_loaders = data_loaders[1]
         test_loaders = data_loaders[2]
@@ -88,11 +89,13 @@ class Trainer:
                 _, train_losses = self.getLosses(train_loaders)
                 # print(train_losses)
                 # print(train_losses)
+                if not self.show_tau_error: train_losses = train_losses[:-1]
                 self.mean_train_losses.append(mean(train_losses))
 
                 # Validate
                 if self.epoch % self.train_param.validation_interval == 0: 
                     _, val_losses = self.getLosses(val_loaders, train = False)
+                    if not self.show_tau_error: val_losses = val_losses[:-1]
                     self.mean_val_losses.append(mean(val_losses))
 
                 # Check Validation Loss
@@ -126,7 +129,8 @@ class Trainer:
 
                     log_str = 'Best Val. Loss Separate'
                     for i in range(len(self.best_val_loss_separate)):
-                        log_str += ' | ' + self.loss_name[i] + ': ' + str(np.round(self.best_val_loss_separate[i], ROUND))
+                        if (self.loss_name[i] == 'tau' and self.show_tau_error) or self.loss_name[i] != 'tau':
+                            log_str += ' | ' + self.loss_name[i] + ': ' + str(np.round(self.best_val_loss_separate[i], ROUND))
                     self.train_param.writeLog(log_str)
 
                     log_str = 'Best Validation Loss    | {:.'+str(ROUND)+'f}\n'
@@ -200,7 +204,8 @@ class Trainer:
             self.loss_separate = np.array(self.loss_separate).mean(axis = 1)
             self.train_log = 'Train Loss             '
             for i in range(len(self.loss_separate)):
-                self.train_log += ' | ' + self.loss_name[i] + ': ' + str(np.round(self.loss_separate[i], ROUND))
+                if (self.loss_name[i] == 'tau' and self.show_tau_error) or self.loss_name[i] != 'tau':
+                    self.train_log += ' | ' + self.loss_name[i] + ': ' + str(np.round(self.loss_separate[i], ROUND))
             self.epoch += 1
             losses = tensor(losses).to(DEVICE)
         else:
@@ -237,7 +242,8 @@ class Trainer:
                 self.loss_separate = np.array(self.loss_separate).mean(axis = 1)
                 self.val_log = 'Val Loss               '
                 for i in range(len(self.loss_separate)):
-                    self.val_log += ' | ' + self.loss_name[i] + ': ' + str(np.round(self.loss_separate[i], ROUND))
+                    if (self.loss_name[i] == 'tau' and self.show_tau_error) or self.loss_name[i] != 'tau':
+                        self.val_log += ' | ' + self.loss_name[i] + ': ' + str(np.round(self.loss_separate[i], ROUND))
                 # plt.imshow(data['image'][0].detach().cpu().numpy().reshape(150, 150, 3))
                 # plt.show()
                 # print(torch.round(torch.clamp(preds[0], min = 1, max = 6)), outputs['num_segments'])

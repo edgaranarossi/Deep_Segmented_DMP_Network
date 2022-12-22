@@ -66,5 +66,5 @@ if __name__ == '__main__':
     
     trainer = Trainer(model, train_param, train_param.model_save_path, train_param.log_writer_path, writer)
 #%%
-    trainer.train(data_loaders)
+    trainer.train(data_loaders, show_tau_error = False)
     print('\nModel saved in '+ train_param.model_save_path)
