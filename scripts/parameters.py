@@ -11,7 +11,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class TrainingParameters:
     def __init__(self):
-        self.root_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
+        self.root_dir = '/home/edgar/rllab/scripts/Segmented_Deep_DMPs'
         # self.root_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs'
         self.init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -81,8 +81,8 @@ class TrainingParameters:
         # self.dataset_name = 'stacking_[1, 2, 3][num-data-450][max-seg-24][normal-dmp_bf-48_ay-25_dt-0.001][seg-dmp_bf-2_ay-3.4_dt-0.024][block_permute-False_random-pos-True][target_random-pos-True][2022-09-11_00-44-55].pkl'
         # self.dataset_name = 'stacking_[1, 2, 3][num-data-3000][max-seg-24][normal-dmp_bf-48_ay-25_dt-0.001][seg-dmp_bf-2_ay-3.4_dt-0.024][block_permute-False_random-pos-True][target_random-pos-True][2022-09-11_00-40-48].pkl'
 
-        self.dataset_dir = join(self.root_dir, 'data/pkl/pepper_shaking')
-        self.dataset_name = 'pepper_shaking_num.59_dof.2_dsdnet[seg.3-bf.50-ay.15-dt.0.003]_cimednet[bf.150-ay.25-dt.0.001]_cimednet_L[bf.1000-ay.25-dt.0.001]_2022-12-05_19-12-08.pkl'
+        self.dataset_dir = join(self.root_dir, 'data/pkl/pepper_shaking_6_target')
+        self.dataset_name = 'pepper_shaking_6_target_num.90_dof.3_dsdnet[seg.4-bf.50-ay.15-dt.0.004]_cimednet[bf.200-ay.25-dt.0.001]_cimednet_L[bf.1000-ay.25-dt.0.001]_2023-01-04_18-31-27.pkl'
 
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         self.data_limit     = None
@@ -109,10 +109,10 @@ class TrainingParameters:
         - CIMEDNet_L
         """
         # self.model_type = 'DSDNetV0'
-        # self.model_type = 'DSDNetV1'
+        self.model_type = 'DSDNetV1'
         # self.model_type = 'DSDNetV2'
         # self.model_type = 'CIMEDNet'
-        self.model_type = 'CIMEDNet_L'
+        # self.model_type = 'CIMEDNet_L'
         # self.model_type = 'PosNet'
         # self.model_type = 'DSDPosNet'
         
@@ -142,7 +142,7 @@ class TrainingParameters:
         # Optimizer parameters
         self.optimizer_type = 'adam'
         self.sdtw_gamma = 1e-4
-        self.learning_rate = 1e-4
+        self.learning_rate = 1e-5
         self.eps = 5e-3
         self.weight_decay = None
 
@@ -209,7 +209,7 @@ class ModelParameters:
         # self.image_dim              = (1, 100, 100)
         # self.image_dim              = (3, 100, 100)
         self.image_dim              = (3, 100, 100)
-        self.dropout_prob           = 0.2
+        self.dropout_prob           = 0.5
 
         # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
         #                           [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
@@ -312,6 +312,10 @@ class ModelParameters:
                                            'segmented_dmp_goal', 
                                            'segmented_dmp_w', 
                                            'segmented_dmp_tau']
+            
+            self.backbone_option        = None
+            # self.backbone_option        = 'keypointrcnn_resnet50_fpn'
+            self.backbone_eval          = False
 
             ## Cutting dataset
             # self.max_segments           = 15
@@ -329,10 +333,10 @@ class ModelParameters:
             # self.latent_w_size          = self.dmp_param.dof
 
             ## Pepper dataset
-            self.max_segments           = 3
+            self.max_segments           = 4
             # self.max_segments           = 8
             # self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.015, ay = 7)
-            self.dmp_param              = DMPParameters(dof = 2, n_bf = 50, dt = 0.003, ay = 15)
+            self.dmp_param              = DMPParameters(dof = 3, n_bf = 50, dt = 0.003, ay = 15)
             self.latent_w_size          = self.dmp_param.dof
 
             # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
@@ -357,7 +361,7 @@ class ModelParameters:
                                        'normal_dmp_tau']
                 # self.dmp_param      = DMPParameters(dof = 2, n_bf = 300, dt = 0.001, ay = 100)
                 # self.dmp_param      = DMPParameters(dof = 3, n_bf = 250, dt = 0.001, ay = 25)
-                self.dmp_param      = DMPParameters(dof = 2, n_bf = 150, dt = 0.001, ay = 25)
+                self.dmp_param      = DMPParameters(dof = 3, n_bf = 200, dt = 0.001, ay = 25)
             elif self.model_type == 'CIMEDNet_L':
                 self.output_mode    = ['normal_dmp_L_y0',
                                        'normal_dmp_L_goal',
@@ -365,7 +369,7 @@ class ModelParameters:
                                        'normal_dmp_L_tau']
                 # self.dmp_param      = DMPParameters(dof = 2, n_bf = 1000, dt = 0.001, ay = 200)
                 # self.dmp_param      = DMPParameters(dof = 3, n_bf = 1000, dt = 0.001, ay = 250)
-                self.dmp_param      = DMPParameters(dof = 2, n_bf = 1000, dt = 0.001, ay = 200)
+                self.dmp_param      = DMPParameters(dof = 3, n_bf = 1000, dt = 0.001, ay = 200)
                                         
             self.loss_name          = ['y0', 'goal', 'w', 'tau']
             self.loss_type          = ['MSE', 'MSE', 'MSE', 'MSE']
@@ -407,6 +411,21 @@ class ModelParameters:
             self.decoder_layer_sizes    = [64, 64, 64]
             # self.decoder_layer_sizes    = [256, 512, 1024]
             # self.keys_to_normalize      = self.output_mode
+
+        elif self.model_type == 'DSDNetPosFineTuning':
+            self.model                  = DSDNetV1
+            
+            # self.backbone_option        = None
+            self.backbone_option        = 'keypointrcnn_resnet50_fpn'
+            self.backbone_eval                   = False
+
+            self.input_mode             = ['image']
+            self.loss_name              = ['seg', 'y0', 'goal']
+            self.loss_type              = ['MSE', 'MSE', 'MSE']
+            self.output_mode            = ['segmented_dmp_seg_num',
+                                           'segmented_dmp_y0', 
+                                           'segmented_dmp_goal']
+            self.max_segments           = 3
 
         elif self.model_type == 'PosNet':
             self.model              = PosNet

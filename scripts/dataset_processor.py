@@ -37,7 +37,7 @@ def generateDMP(x, dmp_param):
     dmp.imitate_path(x.T)
     return dmp
 
-def rot2D(origin, traj, degrees):
+def rot2D(traj, degrees, origin = np.array([0., 0.])):
     
     s = sin(degrees)
     c = cos(degrees)
@@ -51,6 +51,47 @@ def rot2D(origin, traj, degrees):
     t[:, 0] = traj[:, 0] * c - traj[:, 1] * s
     t[:, 1] = traj[:, 0] * s + traj[:, 1] * c
     
+    t += origin
+    
+    return t
+
+def rot3D(traj, degrees, origin = None, order = None):
+    deg_x, deg_y, deg_z = degrees
+    deg_x = np.deg2rad(deg_x)
+    deg_y = np.deg2rad(deg_y)
+    deg_z = np.deg2rad(deg_z)
+    
+    if origin is None: origin = copy(traj[0, :])
+    if order is None: order = ['x', 'y', 'z']
+    
+    rot_x = np.array([[1., 0., 0.], 
+                      [0., cos(deg_x), -sin(deg_x)],
+                      [0., sin(deg_x), cos(deg_x)]])
+    rot_y = np.array([[cos(deg_y), 0., sin(deg_y)],
+                      [0., 1., 0.],
+                      [-sin(deg_y), 0., cos(deg_y)]])
+    rot_z = np.array([[cos(deg_z), -sin(deg_z), 0.],
+                      [sin(deg_z), cos(deg_z), 0.],
+                      [0., 0.,  1.]])
+    
+    if order[0] == 'x':
+        rot_mat = rot_x
+    elif order[0] == 'y':
+        rot_mat = rot_y
+    elif order[0] == 'z':
+        rot_mat = rot_z
+    
+    for i in order[1:]:
+        if i == 'x':
+            rot_mat = rot_mat @ rot_x
+        elif i == 'y':
+            rot_mat = rot_mat @ rot_y
+        elif i == 'z':
+            rot_mat = rot_mat @ rot_z
+    
+    t = deepcopy(traj)
+    t -= origin
+    t = (rot_mat @ t.T).T
     t += origin
     
     return t
@@ -71,7 +112,8 @@ class DatasetGenerator:
                  img_dim, 
                  used_dim,
                  remove_start_end = True,
-                 rotate = None):
+                 rotation_degrees = None,
+                 rotation_order = ['x', 'y', 'z']):
         self.dataset_path = dataset_path
         if not isdir(self.dataset_path): makedirs(self.dataset_path)
         
@@ -88,7 +130,8 @@ class DatasetGenerator:
         self.DATA = {'image': np.array(self.images),
                      'image_dim': img_dim,
                      'original_trajectory': [],
-                     'rot2D': rotate,
+                     'rotation_degrees': rotation_degrees,
+                     'rotation_order': rotation_order,
                      'normal_dmp_seg_num': None,
                      'normal_dmp_y0': [],
                      'normal_dmp_goal': [],
@@ -117,9 +160,9 @@ class DatasetGenerator:
                      'segmented_dmp_trajectory': []
                     }
                     
-        self.parseMotion(remove_start_end, rotate)
+        self.parseMotion(remove_start_end)
         
-    def parseMotion(self, remove_start_end, rotate):
+    def parseMotion(self, remove_start_end):
         print('Parsing motion...')
         self.segmented_motions = []
         
@@ -151,10 +194,17 @@ class DatasetGenerator:
                     new_seg['ee_pose'] = np.append(new_seg['ee_pose'], seg['ee_pose'][:, dim].reshape(-1, 1), axis = 1)
                 trimmed_segments.append(new_seg)
                 
-            origin_pos = trimmed_segments[0]['ee_pose'][0, :]
-            for seg in trimmed_segments:
-                seg['ee_pose'] = rot2D(origin_pos, seg['ee_pose'], rotate)
-            
+            if self.DATA['rotation_degrees'] is not None:
+                if trimmed_segments[0]['ee_pose'].shape[1] == 2:
+                    origin_pos = trimmed_segments[0]['ee_pose'][0, :]
+                    for seg in trimmed_segments:
+                        seg['ee_pose'] = rot2D(seg['ee_pose'], self.DATA['rotation_degrees'], origin_pos)
+                        
+                elif trimmed_segments[0]['ee_pose'].shape[1] == 3:
+                    origin_pos = trimmed_segments[0]['ee_pose'][0, :]
+                    for seg in trimmed_segments:
+                        seg['ee_pose'] = rot3D(seg['ee_pose'], self.DATA['rotation_degrees'], origin_pos, self.DATA['rotation_order'])
+                
             full_motion = deepcopy(trimmed_segments[0]['ee_pose'])
             for seg in trimmed_segments[1:]:
                 full_motion = np.append(full_motion, seg['ee_pose'], axis = 0)
@@ -208,7 +258,7 @@ class DatasetGenerator:
         
         self.generateDMPParameters()
         self.pad(w_mean_filter)
-        # self.listToStr()
+        self.listToStr()
         self.generateName()
         self.pklData()
         # return self.final_DATA
@@ -408,18 +458,19 @@ class DatasetGenerator:
 
 if __name__=='__main__':
     data_dir = '/home/edgar/rllab/data'
-    data_name = 'pepper_shaking'
-    img_dir = 'image/start_processed'
+    data_name = 'pepper_shaking_6_target'
+    img_dir = 'image/start'
     pkl_dir = 'motion'
-    dataset_save_dir = join('/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/data/pkl/', data_name)
+    dataset_save_dir = join('/home/edgar/rllab/scripts/Segmented_Deep_DMPs/data/pkl/', data_name)
     generator = DatasetGenerator(dataset_path = dataset_save_dir,
                                  img_path = join(data_dir, data_name, img_dir), 
                                  pkl_path = join(data_dir, data_name, pkl_dir), 
                                  img_dim = (3, 100 ,100),
-                                 used_dim = [1,2],
-                                 rotate = 45)
+                                 used_dim = [0, 1, 2],
+                                 rotation_degrees = [45, 45, 45],
+                                 rotation_order = ['x', 'y', 'z'])
     
-    n_dmps = 2
+    n_dmps = 3
     base_bf = 50
     base_dt = 1e-3
     
@@ -442,7 +493,7 @@ if __name__=='__main__':
                        dsdnet_dmp_param = dsdnet_dmp_param,
                        cimednet_dmp_param = cimednet_dmp_param,
                        cimednet_dmp_L_param = cimednet_dmp_L_param,
-                       w_mean_filter = 500)
+                       w_mean_filter = 50)
     
     print('\nMin w = {}\nMax w = {}'.format(generator.final_DATA['segmented_dmp_w'].min(), generator.final_DATA['segmented_dmp_w'].max()))
     
