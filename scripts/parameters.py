@@ -12,6 +12,8 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class TrainingParameters:
     def __init__(self):
         self.root_dir = '/home/edgar/rllab/scripts/Segmented_Deep_DMPs'
+        self.data_dir = '/home/edgar/rllab/data/compiled'
+        self.data_name = 'isaac_gym_pot_mixing_5'
         # self.root_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs'
         self.init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -81,8 +83,11 @@ class TrainingParameters:
         # self.dataset_name = 'stacking_[1, 2, 3][num-data-450][max-seg-24][normal-dmp_bf-48_ay-25_dt-0.001][seg-dmp_bf-2_ay-3.4_dt-0.024][block_permute-False_random-pos-True][target_random-pos-True][2022-09-11_00-44-55].pkl'
         # self.dataset_name = 'stacking_[1, 2, 3][num-data-3000][max-seg-24][normal-dmp_bf-48_ay-25_dt-0.001][seg-dmp_bf-2_ay-3.4_dt-0.024][block_permute-False_random-pos-True][target_random-pos-True][2022-09-11_00-40-48].pkl'
 
-        self.dataset_dir = join(self.root_dir, 'data/pkl/pepper_shaking_6_target')
-        self.dataset_name = 'pepper_shaking_6_target_num.90_dof.3_dsdnet[seg.4-bf.50-ay.15-dt.0.004]_cimednet[bf.200-ay.25-dt.0.001]_cimednet_L[bf.1000-ay.25-dt.0.001]_2023-01-04_18-31-27.pkl'
+        self.dataset_dir = join(self.data_dir, self.data_name)
+        # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-16_00-31-28.pkl'
+        # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-17_04-36-57.pkl'
+        self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-16_03-43-19.pkl'
+
 
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         self.data_limit     = None
@@ -109,18 +114,19 @@ class TrainingParameters:
         - CIMEDNet_L
         """
         # self.model_type = 'DSDNetV0'
-        self.model_type = 'DSDNetV1'
+        # self.model_type = 'DSDNetV1'
         # self.model_type = 'DSDNetV2'
         # self.model_type = 'CIMEDNet'
         # self.model_type = 'CIMEDNet_L'
         # self.model_type = 'PosNet'
         # self.model_type = 'DSDPosNet'
+        self.model_type = 'ImgToWToY'
         
         if 'CIMEDNet' in self.model_type:
             self.data_loaders_model_name = 'Model_DSDNetV1_2022-12-05_19-37-02'
 
         # self.load_model_name = 'Model_DSDNetV2_2022-08-09_21-25-20'
-        # self.data_loaders_model_name = 'Model_DSDNetV1_2022-09-11_15-58-06'
+        # self.data_loaders_model_name = 'Model_DSDNetV1_2023-01-04_21-48-02'
 
         self.memory_percentage_limit = 95
 
@@ -159,7 +165,7 @@ class TrainingParameters:
         self.plot_num = 5
 
         # Data parameters
-        self.batch_size = 1
+        self.batch_size = 10
         self.training_ratio = 7
         self.validation_ratio = 2
         self.test_ratio = 1
@@ -208,8 +214,8 @@ class ModelParameters:
         # Network Parameters
         # self.image_dim              = (1, 100, 100)
         # self.image_dim              = (3, 100, 100)
-        self.image_dim              = (3, 100, 100)
-        self.dropout_prob           = 0.5
+        self.image_dim              = (3, 50, 50)
+        self.dropout_prob           = 0.1
 
         # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
         #                           [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
@@ -245,9 +251,25 @@ class ModelParameters:
 
         # pepper
 
-        self.conv_layer_params = [[Conv2dParam(out_channels = 64, kernel_size = 10), 
-                                   Conv2dParam(out_channels = 64, kernel_size = 10), 
-                                   Conv2dParam(out_channels = 64, kernel_size = 10)]]
+        # self.conv_layer_params = [[Conv2dParam(out_channels = 64, kernel_size = 10), 
+        #                            Conv2dParam(out_channels = 64, kernel_size = 10), 
+        #                            Conv2dParam(out_channels = 64, kernel_size = 10)]]
+
+        # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3), Conv2dParam(out_channels = 32, kernel_size = 3)]]
+        # self.conv_layer_params = [[Conv2dParam(out_channels = 32, kernel_size = 10), 
+        #                            Conv2dParam(out_channels = 32, kernel_size = 10), 
+        #                            Conv2dParam(out_channels = 32, kernel_size = 5), 
+        #                            Conv2dParam(out_channels = 32, kernel_size = 5)]]
+        
+        self.conv_layer_params = [[Conv2dParam(out_channels = 256, kernel_size = 3), 
+                                   Conv2dParam(out_channels = 128, kernel_size = 3)]]
+
+        # self.conv_layer_params = [
+        #                           [Conv2dParam(out_channels = 128, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
+        #                           [Conv2dParam(out_channels = 128, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
+        #                           [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5), Conv2dParam(out_channels = 64, kernel_size = 3)],
+        #                           [Conv2dParam(out_channels = 128, kernel_size = 20), Conv2dParam(out_channels = 64, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
+        #                          ]
 
         # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = (self.image_dim[1] - 10, 20), description = 'width')],
         #                           [Conv2dParam(out_channels = 128, kernel_size = (20, self.image_dim[2] - 10), description = 'height')]]
@@ -283,25 +305,25 @@ class ModelParameters:
                                        'normal_dmp_L_goal', 
                                        'normal_dmp_L_w',
                                        'normal_dmp_tau',
-                                       'segmented_dmp_observable_pos',
+                                       'segmented_dmp_t_ratio',
                                        'segmented_dmp_seg_num',
                                        'segmented_dmp_y0', 
                                        'segmented_dmp_goal', 
                                        'segmented_dmp_w', 
                                        'segmented_dmp_tau']
         
-        if self.model_type == 'DSDNetV0':
-            self.model                  = DSDNetV0
+        # if self.model_type == 'DSDNetV0':
+        #     self.model                  = DSDNetV0
 
-            self.input_mode             = ['image']
-            self.output_mode            = ['segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
-            self.keys_to_normalize      = ['normal_dmp_y0', 'normal_dmp_goal', 'normal_dmp_w', 'segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
-            self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE']
+        #     self.input_mode             = ['image']
+        #     self.output_mode            = ['segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
+        #     self.keys_to_normalize      = ['normal_dmp_y0', 'normal_dmp_goal', 'normal_dmp_w', 'segmented_dmp_y0', 'segmented_dmp_goal', 'segmented_dmp_w', 'segmented_dmp_tau']
+        #     self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE']
 
-            self.max_segments           = 27
-            self.dmp_param              = DMPParameters(dof = 3, n_bf = 30, ay = 15)
+        #     self.max_segments           = 27
+        #     self.dmp_param              = DMPParameters(dof = 3, n_bf = 30, ay = 15)
 
-        elif self.model_type == 'DSDNetV1':
+        if self.model_type == 'DSDNetV1':
             self.model                  = DSDNetV1
 
             self.input_mode             = ['image']
@@ -315,7 +337,9 @@ class ModelParameters:
             
             self.backbone_option        = None
             # self.backbone_option        = 'keypointrcnn_resnet50_fpn'
+            # self.backbone_option        = 'fasterrcnn_resnet50_fpn_v2'
             self.backbone_eval          = False
+            # self.backbone_eval          = True
 
             ## Cutting dataset
             # self.max_segments           = 15
@@ -348,6 +372,66 @@ class ModelParameters:
             # self.decoder_layer_sizes    = [64, 64, 64]
             # self.decoder_layer_sizes    = [256, 512, 1024]
             # self.keys_to_normalize      = self.output_mode
+
+        elif self.model_type in ['DSDNetV2']:
+            self.model                  = DSDNetV2
+
+            self.input_mode             = ['image_start', 'image_end']
+            self.loss_name              = ['seg', 'y0', 'goal', 'w', 't_ratio']
+            self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE', 'MSE']
+            self.output_mode            = ['segmented_dmp_seg_num',
+                                           'segmented_dmp_y0', 
+                                           'segmented_dmp_goal', 
+                                           'segmented_dmp_w', 
+                                           'segmented_dmp_t_ratio']
+            
+            self.backbone_option        = None
+            # self.backbone_option        = 'keypointrcnn_resnet50_fpn'
+            # self.backbone_option        = 'fasterrcnn_resnet50_fpn_v2'
+            self.backbone_eval          = False
+            # self.backbone_eval          = True
+
+            ## Pepper dataset
+            self.max_segments           = 3
+            self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.05000000260770321, ay = 10)
+            self.latent_w_size          = self.dmp_param.dof
+
+            # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
+            # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048]
+            # self.decoder_layer_sizes    = [256, 2048, 4096, 4096, 4096]
+            # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048, 2048]
+            # self.decoder_layer_sizes    = [256, 256, 256]
+            self.decoder_layer_sizes    = [128, 128, 128]
+
+        elif self.model_type in ['ImgToWToY']:
+            self.model                  = ImgToWToY
+
+            self.input_mode             = ['image_start', 'image_end']
+            self.loss_name              = ['seg', 'y0', 'goal', 'w', 't_ratio']
+            self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE', 'MSE']
+            self.output_mode            = ['segmented_dmp_seg_num',
+                                           'segmented_dmp_y0', 
+                                           'segmented_dmp_goal', 
+                                           'segmented_dmp_w', 
+                                           'segmented_dmp_t_ratio']
+            
+            self.backbone_option        = None
+            # self.backbone_option        = 'keypointrcnn_resnet50_fpn'
+            # self.backbone_option        = 'fasterrcnn_resnet50_fpn_v2'
+            self.backbone_eval          = False
+            # self.backbone_eval          = True
+
+            ## Pepper dataset
+            self.max_segments           = 3
+            self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.05000000260770321, ay = 10)
+            self.latent_w_size          = self.dmp_param.dof
+
+            # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
+            # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048]
+            # self.decoder_layer_sizes    = [256, 2048, 4096, 4096, 4096]
+            # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048, 2048]
+            # self.decoder_layer_sizes    = [256, 256, 256]
+            self.decoder_layer_sizes    = [128, 128, 128]
         
         elif self.model_type in ['CIMEDNet', 'CIMEDNet_L']:
             self.model              = CIMEDNet

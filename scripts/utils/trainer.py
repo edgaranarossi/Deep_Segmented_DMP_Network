@@ -222,7 +222,7 @@ class Trainer:
                     # loss_str = 'Val Loss'
                     for i in range(len(self.output_mode)):
                         loss_fn = self.loss_fns[i]
-                        # print(preds[i], outputs[self.output_mode[i]])
+                        # print(preds[i].shape, outputs[self.output_mode[i]].shape)
                         loss = loss_fn(preds[i], outputs[self.output_mode[i]])
                         if len(loss.shape) > 0:
                             loss = loss.mean()

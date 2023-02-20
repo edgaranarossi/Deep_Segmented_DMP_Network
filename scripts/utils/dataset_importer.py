@@ -100,11 +100,15 @@ class PickleDataLoader:
                         self.data_length = self.data[key].shape[0]
             if isinstance(self.data[key], ndarray) and len(self.data[key].shape) == 1:
                 self.data[key] = self.data[key].reshape(-1, 1)
-            if key == 'image':
+            if key == 'image' or key == 'image_start' or key == 'image_end':
                 if self.data[key].max() > 1:
                     self.data[key] = self.data[key] / 255
-                if len(self.data[key].shape) == 3:
-                    self.data[key] = self.data[key].reshape(self.data[key].shape[0], 1, self.data[key].shape[1], self.data[key].shape[2])
+                assert len(self.data[key].shape) == 4
+                if self.data[key].shape[-1] != self.model_param.image_dim[-1]:
+                    self.data[key] = self.data[key].reshape(self.data[key].shape[0], self.data[key].shape[3], self.data[key].shape[1], self.data[key].shape[2])
+                else:
+                    self.data[key] = self.data[key].reshape(self.data[key].shape[0], self.data[key].shape[1], self.data[key].shape[2], self.data[key].shape[3])
+                # print(self.data[key].shape)
             if key == 'max_segments':
                 assert type(self.data[key]) == int
                 self.max_segments = self.data[key]
@@ -148,7 +152,8 @@ class PickleDataLoader:
                         else:
                             outputs[key] = self.data[key][idx]
                     elif key in ['rotation_order', 'rotation_degrees']:
-                        outputs[key] = self.data[key]
+                        if self.data[key] is not None:
+                            outputs[key] = self.data[key]
                     else:
                         # print(key, not isinstance(self.data[key], float) and not isinstance(self.data[key], int) and not isinstance(self.data[key], tuple))
                         outputs[key] = self.data[key][idx]
