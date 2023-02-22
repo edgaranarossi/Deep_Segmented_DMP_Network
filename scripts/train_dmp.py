@@ -36,7 +36,7 @@ if __name__ == '__main__':
         data_loaders_train_param = pkl.load(open(join(data_loaders_model_dir, 'train-model-dmp_param.pkl'), 'rb'))
         scaler = data_loaders_train_param.scaler
         train_param.dataset_path = data_loaders_train_param.dataset_path
-        train_param.scaler = data_loaders_train_param.scaler
+        train_param.scaler = data_loaders_train_param.scaler 
         data_loaders = pkl.load(open(join(data_loaders_model_dir, 'data_loaders.pkl'), 'rb'))
         # unscaled_data = [i for i in model_param.output_mode if i not in data_loaders_train_param.model_param.output_mode]
     
@@ -67,4 +67,4 @@ if __name__ == '__main__':
     trainer = Trainer(model, train_param, train_param.model_save_path, train_param.log_writer_path, writer)
 #%%
     trainer.train(data_loaders, show_tau_error = False)
-    print('\nModel saved in '+ train_param.model_save_path)
+    print('\nModel saved in '+ train_param.model_save_path) 

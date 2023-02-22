@@ -86,9 +86,10 @@ class TrainingParameters:
         self.dataset_dir = join(self.data_dir, self.data_name)
         # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-16_00-31-28.pkl'
         # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-17_04-36-57.pkl'
-        self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-16_03-43-19.pkl'
-
-
+        # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-16_03-43-19.pkl'
+        # self.dataset_name = 'isaac_gym_pot_mixing_5_num.10840_dof.2_dsdnet[seg.1-bf.30-ay.10-dt.0.01666666753590107]_cimednet[bf.30-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-20_10-41-48.pkl'
+        self.dataset_name = 'isaac_gym_pot_mixing_5_num.1848_dof.2_dsdnet[seg.1-bf.30-ay.10-dt.0.01666666753590107]_cimednet[bf.30-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-22_06-45-22.pkl'
+        
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         self.data_limit     = None
         # self.data_limit     = 358 # 250
@@ -115,12 +116,12 @@ class TrainingParameters:
         """
         # self.model_type = 'DSDNetV0'
         # self.model_type = 'DSDNetV1'
-        # self.model_type = 'DSDNetV2'
+        self.model_type = 'DSDNetV2'
         # self.model_type = 'CIMEDNet'
         # self.model_type = 'CIMEDNet_L'
         # self.model_type = 'PosNet'
         # self.model_type = 'DSDPosNet'
-        self.model_type = 'ImgToWToY'
+        # self.model_type = 'ImgToWToY'
         
         if 'CIMEDNet' in self.model_type:
             self.data_loaders_model_name = 'Model_DSDNetV1_2022-12-05_19-37-02'
@@ -148,7 +149,7 @@ class TrainingParameters:
         # Optimizer parameters
         self.optimizer_type = 'adam'
         self.sdtw_gamma = 1e-4
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-4
         self.eps = 5e-3
         self.weight_decay = None
 
@@ -213,8 +214,8 @@ class ModelParameters:
 
         # Network Parameters
         # self.image_dim              = (1, 100, 100)
-        # self.image_dim              = (3, 100, 100)
-        self.image_dim              = (3, 50, 50)
+        self.image_dim              = (3, 100, 100)
+        # self.image_dim              = (3, 50, 50)
         self.dropout_prob           = 0.1
 
         # self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 10), Conv2dParam(out_channels = 64, kernel_size = 5)],
@@ -261,7 +262,9 @@ class ModelParameters:
         #                            Conv2dParam(out_channels = 32, kernel_size = 5), 
         #                            Conv2dParam(out_channels = 32, kernel_size = 5)]]
         
-        self.conv_layer_params = [[Conv2dParam(out_channels = 256, kernel_size = 3), 
+        self.conv_layer_params = [[Conv2dParam(out_channels = 128, kernel_size = 3), 
+                                   Conv2dParam(out_channels = 128, kernel_size = 3), 
+                                   Conv2dParam(out_channels = 128, kernel_size = 3), 
                                    Conv2dParam(out_channels = 128, kernel_size = 3)]]
 
         # self.conv_layer_params = [
@@ -278,10 +281,10 @@ class ModelParameters:
         # Define hidden layers sizes (No need to define output layer size)
         # self.hidden_layer_sizes            = [4096, 4096, 4096, 2048, 256]
         # self.hidden_layer_sizes            = [2048, 2048, 2048, 1024, 128]
-        # self.hidden_layer_sizes            = [2048, 2048, 2048, 1024, 512]
+        self.hidden_layer_sizes            = [2048, 2048, 2048, 1024, 512]
         # self.hidden_layer_sizes            = [2048, 1024, 512, 256, 128]
         # self.hidden_layer_sizes            = [1024, 1024, 1024, 1024, 1024, 512, 64]
-        self.hidden_layer_sizes            = [1024, 1024, 1024, 512, 64]
+        # self.hidden_layer_sizes            = [1024, 1024, 1024, 512, 64]
         # self.hidden_layer_sizes            = [1024, 512, 256, 128, 64]
         # self.hidden_layer_sizes            = [512, 512, 512, 256, 64]
         # self.hidden_layer_sizes            = [512, 512, 512, 512, 512, 256, 64]
@@ -392,8 +395,8 @@ class ModelParameters:
             # self.backbone_eval          = True
 
             ## Pepper dataset
-            self.max_segments           = 3
-            self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.05000000260770321, ay = 10)
+            self.max_segments           = 1
+            self.dmp_param              = DMPParameters(dof = 2, n_bf = 30, dt = 0.05000000260770321, ay = 10)
             self.latent_w_size          = self.dmp_param.dof
 
             # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
@@ -458,43 +461,43 @@ class ModelParameters:
             self.loss_name          = ['y0', 'goal', 'w', 'tau']
             self.loss_type          = ['MSE', 'MSE', 'MSE', 'MSE']
 
-        elif self.model_type == 'DSDNetV2':
-            self.model                  = DSDNetV2
+        # elif self.model_type == 'DSDNetV2':
+        #     self.model                  = DSDNetV2
 
-            self.input_mode             = ['image']
-            self.loss_name              = ['pos', 'seg', 'y0', 'goal', 'w', 'tau']
-            self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE', 'MSE', 'MSE']
-            self.output_mode            = ['segmented_dmp_observable_pos',
-                                           'segmented_dmp_seg_num',
-                                           'segmented_dmp_y0', 
-                                           'segmented_dmp_goal', 
-                                           'segmented_dmp_w', 
-                                           'segmented_dmp_tau']
+        #     self.input_mode             = ['image']
+        #     self.loss_name              = ['pos', 'seg', 'y0', 'goal', 'w', 'tau']
+        #     self.loss_type              = ['MSE', 'MSE', 'MSE', 'MSE', 'MSE', 'MSE']
+        #     self.output_mode            = ['segmented_dmp_observable_pos',
+        #                                    'segmented_dmp_seg_num',
+        #                                    'segmented_dmp_y0', 
+        #                                    'segmented_dmp_goal', 
+        #                                    'segmented_dmp_w', 
+        #                                    'segmented_dmp_tau']
 
-            ## Cutting dataset
-            # self.max_segments           = 15
-            # self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.015, ay = 7)
+        #     ## Cutting dataset
+        #     # self.max_segments           = 15
+        #     # self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.015, ay = 7)
 
-            # self.max_segments           = 1
-            # self.dmp_param              = DMPParameters(dof = 2, n_bf = 300, dt = 0.001, ay = 100)
-            # self.dmp_param              = DMPParameters(dof = 2, n_bf = 1000, dt = 0.001, ay = 200)
+        #     # self.max_segments           = 1
+        #     # self.dmp_param              = DMPParameters(dof = 2, n_bf = 300, dt = 0.001, ay = 100)
+        #     # self.dmp_param              = DMPParameters(dof = 2, n_bf = 1000, dt = 0.001, ay = 200)
 
-            ## Stacking dataset
-            self.max_segments           = 24
-            self.max_observable_pos     = 4
-            # self.max_segments           = 8
-            self.dmp_param              = DMPParameters(dof = 4, n_bf = 2, dt = 0.04, ay = 3.4)
-            self.latent_w_size          = self.dmp_param.dof
+        #     ## Stacking dataset
+        #     self.max_segments           = 24
+        #     self.max_observable_pos     = 4
+        #     # self.max_segments           = 8
+        #     self.dmp_param              = DMPParameters(dof = 4, n_bf = 2, dt = 0.04, ay = 3.4)
+        #     self.latent_w_size          = self.dmp_param.dof
 
-            # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
-            # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048]
-            # self.decoder_layer_sizes    = [256, 2048, 4096, 4096, 4096]
-            # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048, 2048]
-            # self.decoder_layer_sizes    = [256, 256, 256]
-            # self.decoder_layer_sizes    = [128, 128, 128]
-            self.decoder_layer_sizes    = [64, 64, 64]
-            # self.decoder_layer_sizes    = [256, 512, 1024]
-            # self.keys_to_normalize      = self.output_mode
+        #     # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
+        #     # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048]
+        #     # self.decoder_layer_sizes    = [256, 2048, 4096, 4096, 4096]
+        #     # self.decoder_layer_sizes    = [512, 1024, 2048, 2048, 2048, 2048]
+        #     # self.decoder_layer_sizes    = [256, 256, 256]
+        #     # self.decoder_layer_sizes    = [128, 128, 128]
+        #     self.decoder_layer_sizes    = [64, 64, 64]
+        #     # self.decoder_layer_sizes    = [256, 512, 1024]
+        #     # self.keys_to_normalize      = self.output_mode
 
         elif self.model_type == 'DSDNetPosFineTuning':
             self.model                  = DSDNetV1
