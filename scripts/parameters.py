@@ -13,7 +13,7 @@ class TrainingParameters:
     def __init__(self):
         self.root_dir = '/home/edgar/rllab/scripts/Segmented_Deep_DMPs'
         self.data_dir = '/home/edgar/rllab/data/compiled'
-        self.data_name = 'isaac_gym_pot_mixing_5'
+        self.data_name = 'isaac_gym_pot_mixing_top_3'
         # self.root_dir = 'D:\\rllab\\scripts\\dmp\\Segmented_Deep_DMPs'
         self.init_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -88,8 +88,11 @@ class TrainingParameters:
         # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-17_04-36-57.pkl'
         # self.dataset_name = 'isaac_gym_pot_mixing_5_num.36000_dof.2_dsdnet[seg.3-bf.20-ay.10-dt.0.05000000260770321]_cimednet[bf.60-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-16_03-43-19.pkl'
         # self.dataset_name = 'isaac_gym_pot_mixing_5_num.10840_dof.2_dsdnet[seg.1-bf.30-ay.10-dt.0.01666666753590107]_cimednet[bf.30-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-20_10-41-48.pkl'
-        self.dataset_name = 'isaac_gym_pot_mixing_5_num.1848_dof.2_dsdnet[seg.1-bf.30-ay.10-dt.0.01666666753590107]_cimednet[bf.30-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-22_06-45-22.pkl'
+        # self.dataset_name = 'isaac_gym_pot_mixing_5_num.1848_dof.2_dsdnet[seg.1-bf.30-ay.10-dt.0.01666666753590107]_cimednet[bf.30-ay.10-dt.0.01666666753590107]_cimednet_L[bf.150-ay.20-dt.0.01666666753590107]_2023-02-22_06-45-22.pkl'
         
+        # isaac gym pot mixing top
+        self.dataset_name = 'isaac_gym_pot_mixing_top_3_num.600_dof.3_dsdnet[seg.2-bf.50-ay.10-dt.0.03333333507180214]_cimednet[bf.100-ay.10-dt.0.01666666753590107]_cimednet_L[bf.300-ay.20-dt.0.01666666753590107]_2023-02-23_21-00-12.pkl'
+
         self.dataset_path   = join(self.dataset_dir,  self.dataset_name)
         self.data_limit     = None
         # self.data_limit     = 358 # 250
@@ -395,8 +398,8 @@ class ModelParameters:
             # self.backbone_eval          = True
 
             ## Pepper dataset
-            self.max_segments           = 1
-            self.dmp_param              = DMPParameters(dof = 2, n_bf = 30, dt = 0.05000000260770321, ay = 10)
+            self.max_segments           = 2
+            self.dmp_param              = DMPParameters(dof = 3, n_bf = 50, dt = 0.05000000260770321, ay = 10)
             self.latent_w_size          = self.dmp_param.dof
 
             # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
@@ -426,7 +429,7 @@ class ModelParameters:
 
             ## Pepper dataset
             self.max_segments           = 3
-            self.dmp_param              = DMPParameters(dof = 2, n_bf = 20, dt = 0.05000000260770321, ay = 10)
+            self.dmp_param              = DMPParameters(dof = 3, n_bf = 50, dt = 0.05000000260770321, ay = 10)
             self.latent_w_size          = self.dmp_param.dof
 
             # self.decoder_layer_sizes    = [64, 512, 1024, 1024, 1024]
