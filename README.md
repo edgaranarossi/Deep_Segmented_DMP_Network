@@ -1,4 +1,4 @@
-# SegmentedDeepDMPs
+# Deep Segmented DMP Network (DSDNet)
 
 https://ieeexplore.ieee.org/abstract/document/10260679/
 
