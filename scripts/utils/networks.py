@@ -9,10 +9,11 @@ import numpy as np
 from .pydmps_torch import DMPs_discrete_torch
 import pickle as pkl
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 class ImageInputProcessor(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the ImageInputProcessor class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -83,6 +84,9 @@ class ImageInputProcessor(nn.Module):
             self.fc.append(nn.Linear(self.hidden_layer_sizes[idx], self.hidden_layer_sizes[idx+1]).to(DEVICE))
 
     def forwardConv(self, x):
+        """
+        Forward pass for the convolutional layers.
+        """
         if self.input_type == 'single':
             if type(x) == dict:
                 x = x['image']
@@ -147,6 +151,9 @@ class ImageInputProcessor(nn.Module):
             return x
 
     def forward(self, x):
+        """
+        Forward pass for the ImageInputProcessor.
+        """
         x = self.forwardConv(x)
         for fc in self.fc[:-1]:
             x = self.tanh(fc(x))
@@ -159,6 +166,9 @@ class ImageInputProcessor(nn.Module):
 
 class DMPWeightDecoder(nn.Module):
     def __init__(self, train_param, input_size):
+        """
+        Initialize the DMPWeightDecoder class with training parameters and input size.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -179,6 +189,9 @@ class DMPWeightDecoder(nn.Module):
         self.output_w           = nn.Linear(self.decoder_layer_sizes[-1], self.dof * self.n_bf).to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass for the DMPWeightDecoder.
+        """
         for fc in self.fc[:-1]:
             x = self.tanh(fc(x))
             # x = self.tanh(fc(self.dropout(x)))
@@ -188,43 +201,11 @@ class DMPWeightDecoder(nn.Module):
         output_w = self.output_w(x)
         return output_w
 
-# class DSDNetV0(nn.Module):
-#     def __init__(self, train_param):
-#         super().__init__()
-#         self.train_param        = train_param
-#         self.model_param        = self.train_param.model_param
-#         self.dmp_param          = self.model_param.dmp_param
-#         self.max_segments       = self.model_param.max_segments
-#         self.dof                = self.dmp_param.dof
-#         self.n_bf               = self.dmp_param.n_bf
-
-#         if self.model_param.input_mode == ['image']:
-#             self.input_processor    = ImageInputProcessor(self.train_param)
-#         self.input_processor_output_size = self.input_processor.output_size
-
-#         output_y0_size          = self.max_segments * self.dof
-#         output_goal_size        = self.max_segments * self.dof
-#         output_w_size           = self.max_segments * self.dof * self.n_bf
-#         output_tau_size         = self.max_segments
-
-#         self.output_y0          = nn.Linear(self.input_processor_output_size, output_y0_size).to(DEVICE)
-#         self.output_goal        = nn.Linear(self.input_processor_output_size, output_goal_size).to(DEVICE)
-#         self.output_w           = nn.Linear(self.input_processor_output_size, output_w_size).to(DEVICE)
-#         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
-
-#     def forward(self, x):
-#         x           = self.input_processor(x)
-#         batch_s     = x.shape[0]
-
-#         dmp_y0      = self.output_y0(x).reshape(batch_s, self.max_segments, self.dof)
-#         dmp_goal    = self.output_goal(x).reshape(batch_s, self.max_segments, self.dof)
-#         dmp_weights = self.output_w(x).reshape(batch_s, self.max_segments, self.dof, self.n_bf)
-#         dmp_tau     = self.output_tau(x).reshape(batch_s, self.max_segments)
-
-#         return [dmp_y0, dmp_goal, dmp_weights, dmp_tau]
-
 class DSDNetV1(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the DSDNetV1 class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -253,6 +234,9 @@ class DSDNetV1(nn.Module):
         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass for the DSDNetV1.
+        """
         x           = self.input_processor(x)
         batch_s     = x.shape[0]
 
@@ -274,6 +258,9 @@ class DSDNetV1(nn.Module):
 
 class DSDNetV2(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the DSDNetV2 class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -303,6 +290,9 @@ class DSDNetV2(nn.Module):
         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass for the DSDNetV2.
+        """
         x           = self.input_processor(x)
         batch_s     = x.shape[0]
 
@@ -324,6 +314,9 @@ class DSDNetV2(nn.Module):
 
 class ImgToWToY(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the ImgToWToY class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -370,6 +363,9 @@ class ImgToWToY(nn.Module):
         self.output_t_ratio     = nn.Linear(hidden_size, output_t_ratio_size).to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass for the ImgToWToY.
+        """
         x           = self.input_processor(x)
         batch_s     = x.shape[0]
 
@@ -403,170 +399,11 @@ class ImgToWToY(nn.Module):
 
         return [dmp_num_segments, dmp_y0, dmp_goal, dmp_weights, dmp_t_ratio]
 
-# class DSDNet(nn.Module):
-#     def __init__(self, train_param):
-#         super().__init__()
-#         self.train_param        = train_param
-#         self.model_param        = self.train_param.model_param
-#         self.dmp_param          = self.model_param.dmp_param
-#         self.max_segments       = self.model_param.max_segments
-#         self.dof                = self.dmp_param.dof
-#         self.n_bf               = self.dmp_param.n_bf
-#         self.latent_w_size      = self.model_param.latent_w_size
-
-#         if self.model_param.input_mode == ['image']:
-#             self.input_processor    = ImageInputProcessor(self.train_param)
-#         self.input_processor_output_size = self.input_processor.output_size
-#         self.dmp_weight_decoder = DMPWeightDecoder(self.train_param, input_size = self.latent_w_size)
-
-#         output_num_segments_size= 1
-#         output_y0_size          = self.max_segments * self.dof
-#         output_goal_size        = self.max_segments * self.dof
-#         # output_pos_size        = (self.max_segments + 1) * self.dof
-#         output_tau_size         = self.max_segments
-
-#         self.output_num_segments= nn.Linear(self.input_processor_output_size, output_num_segments_size).to(DEVICE)
-#         self.output_y0          = nn.Linear(self.input_processor_output_size, output_y0_size).to(DEVICE)
-#         self.output_goal        = nn.Linear(self.input_processor_output_size, output_goal_size).to(DEVICE)
-#         # self.output_pos         = nn.Linear(self.input_processor_output_size, output_pos_size).to(DEVICE)
-#         self.latent_w           = nn.Linear(self.input_processor_output_size, self.max_segments * self.latent_w_size).to(DEVICE)
-#         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
-
-#     def forward(self, x):
-#         x           = self.input_processor(x)
-#         batch_s     = x.shape[0]
-
-#         latent_w    = self.latent_w(x).reshape(batch_s * self.max_segments, self.latent_w_size)
-
-#         dmp_num_segments = self.output_num_segments(x).reshape(batch_s, 1)
-#         dmp_y0      = self.output_y0(x).reshape(batch_s, self.max_segments, self.dof)
-#         dmp_goal    = self.output_goal(x).reshape(batch_s, self.max_segments, self.dof)
-
-#         # dmp_pos     = self.output_pos(x).reshape(batch_s, self.max_segments + 1, self.dof)
-#         # dmp_y0      = dmp_pos[:, :-1]
-#         # dmp_goal    = dmp_pos[:, 1:]
-
-#         dmp_weights = self.dmp_weight_decoder(latent_w).reshape(batch_s, self.max_segments, self.dof, self.n_bf)
-#         dmp_tau     = self.output_tau(x).reshape(batch_s, self.max_segments)
-#         # dmp_tau     = torch.abs(self.output_tau(x).reshape(batch_s, self.max_segments))
-
-#         return [dmp_num_segments, dmp_y0, dmp_goal, dmp_weights, dmp_tau]
-
-# class FineTuningDSDNet(nn.Module):
-#     def __init__(self, train_param):
-#         super().__init__()
-#         self.train_param        = train_param
-#         self.model_param        = self.train_param.model_param
-#         self.dmp_param          = self.model_param.dmp_param
-
-#         if self.model_param.backbone_option == 'keypointrcnn_resnet50_fpn':
-#             self.backbone           = keypointrcnn_resnet50_fpn(weights=KeypointRCNN_ResNet50_FPN_Weights.DEFAULT)
-#             self.targets            = None
-
-#         if self.model_param.eval:
-#             self.backbone.eval()
-
-#         self.max_segments       = self.model_param.max_segments
-#         self.dof                = self.dmp_param.dof
-#         self.n_bf               = self.dmp_param.n_bf
-#         self.latent_w_size      = self.model_param.latent_w_size
-
-#         if self.model_param.input_mode == ['image']:
-#             self.input_processor    = ImageInputProcessor(self.train_param)
-#         self.input_processor_output_size = self.input_processor.output_size
-#         self.dmp_weight_decoder = DMPWeightDecoder(self.train_param, input_size = self.latent_w_size)
-
-#         output_num_segments_size= 1
-#         output_y0_size          = self.max_segments * self.dof
-#         output_goal_size        = self.max_segments * self.dof
-#         # output_pos_size        = (self.max_segments + 1) * self.dof
-#         output_tau_size         = self.max_segments
-
-#         self.output_num_segments= nn.Linear(self.input_processor_output_size, output_num_segments_size).to(DEVICE)
-#         self.output_y0          = nn.Linear(self.input_processor_output_size, output_y0_size).to(DEVICE)
-#         self.output_goal        = nn.Linear(self.input_processor_output_size, output_goal_size).to(DEVICE)
-#         # self.output_pos         = nn.Linear(self.input_processor_output_size, output_pos_size).to(DEVICE)
-#         self.latent_w           = nn.Linear(self.input_processor_output_size, self.max_segments * self.latent_w_size).to(DEVICE)
-#         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
-
-#     def forward(self, x):
-#         # x           = self.input_processor(x)
-#         images, targets = self.backbone(x, self.targets)
-#         features        = self.backbone(images.tensors)
-#         batch_s         = x.shape[0]
-
-#         latent_w    = self.latent_w(x).reshape(batch_s * self.max_segments, self.latent_w_size)
-
-#         dmp_num_segments = self.output_num_segments(x).reshape(batch_s, 1)
-#         dmp_y0      = self.output_y0(x).reshape(batch_s, self.max_segments, self.dof)
-#         dmp_goal    = self.output_goal(x).reshape(batch_s, self.max_segments, self.dof)
-
-#         # dmp_pos     = self.output_pos(x).reshape(batch_s, self.max_segments + 1, self.dof)
-#         # dmp_y0      = dmp_pos[:, :-1]
-#         # dmp_goal    = dmp_pos[:, 1:]
-
-#         dmp_weights = self.dmp_weight_decoder(latent_w).reshape(batch_s, self.max_segments, self.dof, self.n_bf)
-#         dmp_tau     = self.output_tau(x).reshape(batch_s, self.max_segments)
-#         # dmp_tau     = torch.abs(self.output_tau(x).reshape(batch_s, self.max_segments))
-
-#         return [dmp_num_segments, dmp_y0, dmp_goal, dmp_weights, dmp_tau]
-
-# class DSDNetV2(nn.Module):
-#     def __init__(self, train_param):
-#         super().__init__()
-#         self.train_param        = train_param
-#         self.model_param        = self.train_param.model_param
-#         self.dmp_param          = self.model_param.dmp_param
-#         self.max_observable_pos = self.model_param.max_observable_pos
-#         self.max_segments       = self.model_param.max_segments
-#         self.dof                = self.dmp_param.dof
-#         self.n_bf               = self.dmp_param.n_bf
-#         self.latent_w_size      = self.model_param.latent_w_size
-
-#         if self.model_param.input_mode == ['image']:
-#             self.input_processor    = ImageInputProcessor(self.train_param)
-#         self.input_processor_output_size = self.input_processor.output_size
-#         self.dmp_weight_decoder = DMPWeightDecoder(self.train_param, input_size = self.latent_w_size)
-
-#         output_num_segments_size= 1
-#         output_y0_size          = self.max_segments * self.dof
-#         output_goal_size        = self.max_segments * self.dof
-#         # output_pos_size        = (self.max_segments + 1) * self.dof
-#         output_tau_size         = self.max_segments
-
-#         self.latent_observable_pos     = nn.Linear(self.input_processor_output_size, self.max_observable_pos * 2).to(DEVICE)
-#         self.output_num_segments= nn.Linear(self.max_observable_pos * 2, output_num_segments_size).to(DEVICE)
-#         self.output_y0          = nn.Linear(self.max_observable_pos * 2, output_y0_size).to(DEVICE)
-#         self.output_goal        = nn.Linear(self.max_observable_pos * 2, output_goal_size).to(DEVICE)
-#         # self.output_pos         = nn.Linear(self.max_projected_points * 2, output_pos_size).to(DEVICE)
-
-#         self.latent_w           = nn.Linear(self.input_processor_output_size, self.max_segments * self.latent_w_size).to(DEVICE)
-#         self.output_tau         = nn.Linear(self.max_segments * self.latent_w_size, output_tau_size).to(DEVICE)
-
-#     def forward(self, x):
-#         x           = self.input_processor(x)
-#         batch_s     = x.shape[0]
-
-#         latent_observable_pos = self.latent_observable_pos(x)
-#         observable_pos = latent_observable_pos.reshape(batch_s, self.max_observable_pos, 2)
-#         dmp_num_segments = self.output_num_segments(latent_observable_pos).reshape(batch_s, 1)
-#         dmp_y0      = self.output_y0(latent_observable_pos).reshape(batch_s, self.max_segments, self.dof)
-#         dmp_goal    = self.output_goal(latent_observable_pos).reshape(batch_s, self.max_segments, self.dof)
-#         # dmp_pos     = self.output_pos(latent_img_pos).reshape(batch_s, self.max_segments + 1, self.dof)
-#         # dmp_y0      = dmp_pos[:, :-1]
-#         # dmp_goal    = dmp_pos[:, 1:]
-
-#         latent_w    = self.latent_w(x).reshape(batch_s * self.max_segments, self.latent_w_size)
-#         dmp_weights = self.dmp_weight_decoder(latent_w).reshape(batch_s, self.max_segments, self.dof, self.n_bf)
-#         dmp_tau     = self.output_tau(latent_w.reshape(batch_s, self.max_segments * self.latent_w_size))
-#         # dmp_tau     = torch.abs(self.output_tau(x).reshape(batch_s, self.max_segments))
-
-#         return [observable_pos, dmp_num_segments, dmp_y0, dmp_goal, dmp_weights, dmp_tau]
-
-
-
 class CIMEDNet(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the CIMEDNet class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -589,6 +426,9 @@ class CIMEDNet(nn.Module):
         self.output_tau         = nn.Linear(self.input_processor_output_size, output_tau_size).to(DEVICE)
         
     def forward(self, x):
+        """
+        Forward pass for the CIMEDNet.
+        """
         x           = self.input_processor(x)
         batch_s     = x.shape[0]
 
@@ -601,6 +441,9 @@ class CIMEDNet(nn.Module):
 
 class PosNet(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the PosNet class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -614,6 +457,9 @@ class PosNet(nn.Module):
         self.latent_observable_pos     = nn.Linear(self.input_processor_output_size, self.max_observable_pos * 2).to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass for the PosNet.
+        """
         x           = self.input_processor(x)
         batch_s     = x.shape[0]
         latent_observable_pos = self.latent_observable_pos(x)
@@ -623,6 +469,9 @@ class PosNet(nn.Module):
 
 class DSDPosNet(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the DSDPosNet class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -640,6 +489,9 @@ class DSDPosNet(nn.Module):
         self.output_goal        = nn.Linear(self.max_observable_pos * 2, output_goal_size).to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass for the DSDPosNet.
+        """
         batch_s                 = x[self.model_param.input_mode[0]].shape[0]
         x                       = self.pos_net(x)[0].reshape(batch_s, self.max_observable_pos * 2)
 
@@ -650,6 +502,9 @@ class DSDPosNet(nn.Module):
 
 class AutoEncoder(nn.Module):
     def __init__(self, train_param):
+        """
+        Initialize the AutoEncoder class with training parameters.
+        """
         super().__init__()
         self.train_param        = train_param
         self.model_param        = self.train_param.model_param
@@ -721,6 +576,9 @@ class AutoEncoder(nn.Module):
         # self.output_tau         = nn.Linear(self.hidden_layer_sizes[-1], output_tau_size).to(DEVICE)
 
     def forwardConv(self, x):
+        """
+        Forward pass for the convolutional layers in AutoEncoder.
+        """
         if type(x) == dict:
             x_start = x['image_start']
             x_end = x['image_end']
@@ -754,6 +612,9 @@ class AutoEncoder(nn.Module):
         return x_start, x_end
 
     def forward(self, x):
+        """
+        Forward pass for the AutoEncoder.
+        """
         x_1, x_2 = self.forwardConv(x)
         x = self.combine_x_start_end(x_1, x_2)
         for fc in self.fc[:-1]:
@@ -792,4 +653,6 @@ class AutoEncoder(nn.Module):
     #     # dmp_tau     = torch.abs(self.output_tau(x).reshape(batch_s, self.max_segments))
 
     #     return [dmp_num_segments, dmp_y0, dmp_goal, dmp_weights, dmp_tau]
-        
+
+if __name__ == '__main__':
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

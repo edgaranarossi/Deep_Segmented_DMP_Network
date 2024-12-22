@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Nov 25 21:59:09 2021
+Shape Check Script
 
-@author: edgar
+This script contains functions to check the shape of the network outputs for the Deep Segmented DMP Network.
 """
+
 import torch
 from torch import nn, flatten, ones, zeros, tensor, exp, linspace, sum, swapaxes, clamp
 import torch.nn.functional as F
@@ -12,16 +13,12 @@ import torch.nn.functional as F
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class TrainingParameters:
+    """
+    Class to hold training parameters.
+    """
     def __init__(self):
-
         # Optimizer parameters
         self.optimizer_type = 'adam'
-        """
-        loss:
-        - MSE  : Mean Squared Error
-        - SDTW : Soft Dynamic Time Warping
-        - None : Model default
-        """
         self.loss_type = None
         self.learning_rate = 1e-5
         self.eps = 1e-3
@@ -40,129 +37,117 @@ class TrainingParameters:
         self.test_ratio = 1
         self.includes_tau = 1
 
-        # Processed parameters # No need to manually modify
-        self.data_ratio = [self.training_ratio, self. validation_ratio, self.test_ratio]
-
+        # Processed parameters
+        self.data_ratio = [self.training_ratio, self.validation_ratio, self.test_ratio]
         self.model_param = ModelParameters()
 
 class DMPParameters:
+    """
+    Class to hold DMP parameters.
+    """
     def __init__(self):
-        self.segments   = 50 # Set to None for NewCNNDMPNet; Set to (int) for SegmentedDMPNet
-        self.dof        = None # No need to pre-define
-        self.n_bf       = 10
-        self.scale      = None # Need to be defined. See dataset_importer
-        self.dt         = .05 # * (1 if self.segments == None else self.segments)
-        self.tau        = 1. # None if network include tau, assign a float value if not included
-
-        # Canonical System Parameters
+        self.segments = 50
+        self.dof = None
+        self.n_bf = 10
+        self.scale = None
+        self.dt = .05
+        self.tau = 1.0
         self.cs_runtime = 1.0
-        self.cs_ax      = 1.0
-
-        # Dynamical System Parameters
-        self.ay         = 20.
-        self.by         = None # If not defined by = ay / 4
-
-        self.timesteps = None # No need to pre-define
+        self.cs_ax = 1.0
+        self.ay = 20.0
+        self.by = None
+        self.timesteps = None
 
 class ModelParameters:
+    """
+    Class to hold model parameters.
+    """
     def __init__(self):
         self.input_mode = 'image'
-        """
-        output_mode:
-        'dmp' : Use old loss function
-        'traj' : Use new loss function which compares trajectory
-        """
-        # Network Parameters
         self.output_mode = 'traj'
         self.image_dim = (1, 50, 50)
         self.hidden_layer_sizes = [20, 35]
-
         self.dmp_param = DMPParameters()
-
-        ## Processed parameters # No need to manually modify
-        # Fill DMP None
         self.dmp_param.dof = len(self.image_dim) - 1
-        self.dmp_param.ay = ones(self.model_param.segments, self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
-        if self.dmp_param.by == None:
+        self.dmp_param.ay = ones(self.dmp_param.segments, self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.ay
+        if self.dmp_param.by is None:
             self.dmp_param.by = self.dmp_param.ay / 4
         else:
             ones(self.dmp_param.dof, 1).to(DEVICE) * self.dmp_param.by
 
-        """
-        Calculate output layer size and add it to self.hidden_layer_sizes
-        """
-        if self.model_param.segments == None:
-            self.hidden_layer_sizes = self.hidden_layer_sizes + [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau == None else 0)]
-        elif self.model_param.segments > 0:
-            self.max_segmentsment_points = self.model_param.segments + 1
-            self.max_segmentsment_weights = self.model_param.segments
+        if self.dmp_param.segments is None:
+            self.hidden_layer_sizes += [(self.dmp_param.n_bf * self.dmp_param.dof) + (2 * self.dmp_param.dof) + (1 if self.dmp_param.tau is None else 0)]
+        elif self.dmp_param.segments > 0:
+            self.max_segmentsment_points = self.dmp_param.segments + 1
+            self.max_segmentsment_weights = self.dmp_param.segments
             self.len_segment_points = self.max_segmentsment_points * self.dmp_param.dof
             self.len_segment_weights = self.max_segmentsment_weights * self.dmp_param.dof * self.dmp_param.n_bf
-            self.hidden_layer_sizes = self.hidden_layer_sizes +\
-                                [(1 if self.dmp_param.tau == None else 0) +\
-                                self.len_segment_points +\
-                                self.len_segment_weights]
-            # self.dmp_param.dt = self.dmp_param.dt * self.model_param.segments
+            self.hidden_layer_sizes += [(1 if self.dmp_param.tau is None else 0) + self.len_segment_points + self.len_segment_weights]
         else:
-            raise ValueError('self.model_param.segments must be either None or > 0')
+            raise ValueError('self.dmp_param.segments must be either None or > 0')
         self.dmp_param.timesteps = int(self.dmp_param.cs_runtime / self.dmp_param.dt)
 
 class SegmentedDMPNet(nn.Module):
+    """
+    Segmented DMP Network class.
+    """
     def __init__(self, train_param):
         super().__init__()
         self.train_param = train_param
         self.model_param = train_param.model_param
         self.tanh = torch.nn.Tanh().to(DEVICE)
 
-        # Define convolution layers
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=10, kernel_size=5).to(DEVICE)
         self.conv2 = nn.Conv2d(in_channels=10, out_channels=20, kernel_size=5).to(DEVICE)
 
-        # Get convolution layers output shape and add it to layer_sizes
         _x = torch.ones(1, self.model_param.image_dim[0], self.model_param.image_dim[1], self.model_param.image_dim[2]).to(DEVICE)
         conv_output_size = self.forwardConv(_x).shape[1]
         layer_sizes = [conv_output_size] + self.model_param.hidden_layer_sizes
         
-        # Define fully-connected layers
         self.fc = []
         for idx in range(len(layer_sizes[:-1])):
             self.fc.append(nn.Linear(layer_sizes[idx], layer_sizes[idx+1]).to(DEVICE))
 
     def forwardConv(self, x):
+        """
+        Forward pass through convolutional layers.
+        """
         x = F.relu(F.max_pool2d(self.conv1(x), 2), inplace=False)
         x = F.relu(F.max_pool2d(self.conv2(x), 2), inplace=False)
-        x = flatten(x, 1) # flatten all dimensions except batch
+        x = flatten(x, 1)
         return x.to(DEVICE)
 
     def forward(self, x):
+        """
+        Forward pass through the network.
+        """
         x = self.forwardConv(x)
         for fc in self.fc[:-1]:
             x = self.tanh(fc(x))
         output = self.fc[-1](x)
         traj = self.integrateDMP(output)
-        traj = clamp(traj, min = 0, max = 1)
+        traj = clamp(traj, min=0, max=1)
         return traj
 
     def integrateDMP(self, x, **kwargs):
         """
-        Original DMP formulation based on pydmps modified to include segments tensor processing
+        Integrate DMP to generate trajectory.
 
-        References:
-        1. Dynamic Movement Primitives-A Framework for Motor Control in Humans and Humanoid Robotics, Schaal, 2002
-        2. Dynamic Movement Primitives: Learning Attractor Models for Motor Behaviors, Ijspeert et al, 2013
-        3. pydmps, DeWolf, 2013, https://github.com/studywolf/pydmps
+        Parameters:
+        x (tensor): The network output tensor.
+
+        Returns:
+        tensor: The integrated trajectory.
         """
         dmp_param = self.model_param.dmp_param
         train_param = self.train_param
         batch_size_x = x.shape[0]
 
         def genDMPParametersFromOutput(x):
-            # splitOutput(rescaleDMPParameters(x))
             splitOutput(x)
             genY0sGoalsFromSegmentsPoints()
 
         def rescaleDMPParameters(x):
-            # print("Rescaling output")
             y_min = self.model_param.scale.y_min
             y_max = self.model_param.scale.y_max
             x_min = self.model_param.scale.x_min
@@ -171,8 +156,7 @@ class SegmentedDMPNet(nn.Module):
             return rescaled_x
 
         def splitOutput(x):
-            # print("Splitting output")
-            if dmp_param.tau == None:
+            if dmp_param.tau is None:
                 self.tau = x[:, 0].reshape(-1, 1, 1, 1)
                 start_idx = 1
             else:
@@ -187,19 +171,12 @@ class SegmentedDMPNet(nn.Module):
                                       self.model_param.num_segment_weights, 
                                       dmp_param.dof, 
                                       dmp_param.n_bf)
-            # print(self.segment_points.shape)
-            # print(self.weights.shape)
 
         def genY0sGoalsFromSegmentsPoints():
-            # print("Splitting segments into y0 and goal")
-            # print(self.segment_points[:,:-1].shape)
             self.y0s = self.segment_points[:,:-1].reshape(batch_size_x, model_param.segments, dmp_param.dof, 1)
             self.goals = self.segment_points[:,1:].reshape(batch_size_x, model_param.segments, dmp_param.dof, 1)
             self.y0s = clamp(self.y0s, min = 0, max = 1)
             self.goals = clamp(self.goals, min = 0, max = 1)
-            # print('y0s', self.y0s[0][:5])
-            # print('goals', self.goals[0][:5])
-            # print()
 
         def initializeDMP():
             self.x = ones(batch_size_x, model_param.segments, 1, 1).to(DEVICE)
@@ -247,27 +224,26 @@ class SegmentedDMPNet(nn.Module):
             self.ddy_track_segment, self.dy_track, self.ddy_track, 
             self.y0s, self.goals, self.segment_points, self.weights, self.tau
 
-        # print("Start integration", x.shape)
         genDMPParametersFromOutput(x)
         initializeDMP()
         integrate()
         recombineSegments()
         clearMemory()
-        # print("Finish integration", self.y_track_segment.shape, self.y_track.shape)
         return self.y_track
-#%%
-train_param = TrainingParameters()
-model_param = train_param.model_param
-net = SegmentedDMPNet(train_param)
 
-# x = torch.ones(train_param.batch_size, model_param.image_dim[0], model_param.image_dim[1], model_param.image_dim[2]).to(DEVICE)
-# y_track = net(x)
-tau = 1
+if __name__ == '__main__':
+    """
+    Main function to run the shape check script.
+    """
+    train_param = TrainingParameters()
+    model_param = train_param.model_param
+    net = SegmentedDMPNet(train_param)
 
-x = tensor(network_output.reshape(1, -1)).to(DEVICE)
-y_track = net.integrateDMP(x)
-#%%
-from matplotlib import pyplot as plt
-y_track_np = y_track.squeeze().cpu().numpy()
-# plt.scatter(y_track_np[:,0], y_track_np[:,1], s=1)
-plt.plot(y_track_np[:,0], y_track_np[:,1])
+    tau = 1
+
+    x = tensor(network_output.reshape(1, -1)).to(DEVICE)
+    y_track = net.integrateDMP(x)
+
+    from matplotlib import pyplot as plt
+    y_track_np = y_track.squeeze().cpu().numpy()
+    plt.plot(y_track_np[:,0], y_track_np[:,1])

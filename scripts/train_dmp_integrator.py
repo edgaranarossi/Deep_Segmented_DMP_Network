@@ -1,3 +1,9 @@
+"""
+Train DMP Integrator Script
+
+This script contains functions to train the DMP integrator for the Deep Segmented DMP Network.
+"""
+
 from utils.dataset_importer import MatDataLoader, PickleDataLoader, DMPParamScale
 from utils.networks import CNNDMPNet, NewCNNDMPNet, SegmentedDMPNet, DMPIntegratorNet
 from utils.trainer import Trainer

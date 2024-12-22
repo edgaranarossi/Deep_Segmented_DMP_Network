@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul  8 22:27:03 2022
+Test DMP Parameter Script
 
-@author: edgar
+This script contains functions to test the DMP parameters for the Deep Segmented DMP Network.
 """
+
 from pydmps import DMPs_discrete
 import numpy as np
 from matplotlib import pyplot as plt

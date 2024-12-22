@@ -10,10 +10,11 @@ import sys
 import psutil
 import random
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 class MinMax:
     def __init__(self, min, max):
+        """
+        Initialize the MinMax class with minimum and maximum values.
+        """
         if min == max:
             self.min = min - 0.1
         else:
@@ -22,12 +23,18 @@ class MinMax:
 
 class Scaler:
     def __init__(self, data, range_new = [-1.0, 1.0]):
+        """
+        Initialize the Scaler class with data and new range.
+        """
         self.range_old = MinMax(min = data.min(), max = data.max())
         self.range_new = MinMax(min = range_new[0], max = range_new[1])
         self.old_data = data
         self.normalized_data = self.normalize()
 
     def normalize(self):
+        """
+        Normalize the data.
+        """
         normalized_data = (self.range_new.max - self.range_new.min) * \
                           (self.old_data      - self.range_old.min) / \
                           (self.range_old.max - self.range_old.min) + \
@@ -35,6 +42,9 @@ class Scaler:
         return normalized_data
 
     def denormalize(self, X):
+        """
+        Denormalize the data.
+        """
         denormalized_data = (X - self.range_new.min) / \
                             (self.range_new.max - self.range_new.min) * \
                             (self.range_old.max - self.range_old.min) + \
@@ -42,6 +52,9 @@ class Scaler:
         return denormalized_data
 
 def ndarray_to_str(arr):
+    """
+    Convert a numpy ndarray to a string.
+    """
     assert len(arr.shape) == 2
     s = ''
     for i in range(arr.shape[0]):
@@ -53,17 +66,23 @@ def ndarray_to_str(arr):
     return s
 
 def str_to_ndarray(s):
+    """
+    Convert a string to a numpy ndarray.
+    """
     arr = []
     for line in s.split(';'):
         if len(line) > 0:
             l = []
-            for w in line.split(','):
+            for w in line.split(',')):
                 l.append(float(w))
             arr.append(l)
     return np.array(arr)
 
 class PickleDataLoader:
     def __init__(self, train_param):
+        """
+        Initialize the PickleDataLoader class with training parameters.
+        """
         self.train_param        = train_param
         self.memory_limit       = self.train_param.memory_percentage_limit
         self.model_param        = self.train_param.model_param
@@ -167,10 +186,15 @@ class PickleDataLoader:
             self.combined_inputs, self.combined_outputs = zip(*combined_data)
 
     def getData(self):
+        """
+        Get the combined inputs and outputs.
+        """
         return self.combined_inputs, self.combined_outputs
 
     def getDataLoader(self, data_ratio = [7, 2, 1], batch_size = 50):
-        
+        """
+        Get the data loaders for training, validation, and testing.
+        """
         X_train, X_val, Y_train, Y_val  = train_test_split(self.combined_inputs,
                                                            self.combined_outputs,
                                                            test_size=(data_ratio[1]+data_ratio[2])/sum(data_ratio))
@@ -195,15 +219,27 @@ class PickleDataLoader:
     
 class DMPDataset(Dataset):
     def __init__(self, X, Y = None):
+        """
+        Initialize the DMPDataset class with inputs and labels.
+        """
         self.X = X
         self.Y = Y
 
     def __len__(self):
+        """
+        Get the length of the dataset.
+        """
         return len(self.X)
 
     def __getitem__(self, idx):
+        """
+        Get an item from the dataset.
+        """
         inputs = self.X[idx]
         if self.Y != None: 
             labels = self.Y[idx]
             return (inputs, labels)
         return inputs
+
+if __name__ == '__main__':
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

@@ -19,6 +19,15 @@ import pickle as pkl
 from copy import copy, deepcopy
 
 def ndarray_to_str(arr):
+    """
+    Convert a 2D numpy array to a string representation.
+
+    Parameters:
+    arr (np.ndarray): The input array.
+
+    Returns:
+    str: The string representation of the array.
+    """
     assert len(arr.shape) == 2
     s = ''
     for i in range(arr.shape[0]):
@@ -30,22 +39,39 @@ def ndarray_to_str(arr):
     return s
     
 def generateDMP(x, dmp_param):
-    dmp = DMPs_discrete(n_dmps = x.shape[1],
-                        n_bfs = dmp_param.n_bfs,
-                        ay = np.ones(x.shape[1]) * dmp_param.ay,
-                        dt = dmp_param.dt)
+    """
+    Generate a DMP from the given trajectory and parameters.
+
+    Parameters:
+    x (np.ndarray): The input trajectory.
+    dmp_param (DMPParameters): The DMP parameters.
+
+    Returns:
+    DMPs_discrete: The generated DMP.
+    """
+    dmp = DMPs_discrete(n_dmps=x.shape[1],
+                        n_bfs=dmp_param.n_bfs,
+                        ay=np.ones(x.shape[1]) * dmp_param.ay,
+                        dt=dmp_param.dt)
     dmp.imitate_path(x.T)
     return dmp
 
-def rot2D(traj, degrees, origin = np.array([0., 0.])):
-    
+def rot2D(traj, degrees, origin=np.array([0., 0.])):
+    """
+    Rotate a 2D trajectory by a given angle around an origin.
+
+    Parameters:
+    traj (np.ndarray): The input trajectory.
+    degrees (float): The rotation angle in degrees.
+    origin (np.ndarray): The origin of rotation.
+
+    Returns:
+    np.ndarray: The rotated trajectory.
+    """
     s = sin(degrees)
     c = cos(degrees)
     
-    # traj -= origin
-    
     t = deepcopy(traj)
-    
     t -= origin
     
     t[:, 0] = traj[:, 0] * c - traj[:, 1] * s
@@ -55,7 +81,19 @@ def rot2D(traj, degrees, origin = np.array([0., 0.])):
     
     return t
 
-def rot3D(traj, degrees, origin = None, order = None):
+def rot3D(traj, degrees, origin=None, order=None):
+    """
+    Rotate a 3D trajectory by given angles around an origin in a specified order.
+
+    Parameters:
+    traj (np.ndarray): The input trajectory.
+    degrees (tuple): The rotation angles in degrees for x, y, and z axes.
+    origin (np.ndarray): The origin of rotation.
+    order (list): The order of rotation axes.
+
+    Returns:
+    np.ndarray: The rotated trajectory.
+    """
     deg_x, deg_y, deg_z = degrees
     deg_x = np.deg2rad(deg_x)
     deg_y = np.deg2rad(deg_y)
@@ -97,7 +135,10 @@ def rot3D(traj, degrees, origin = None, order = None):
     return t
 
 class DMPParameters:
-    def __init__(self, n_dmps, n_bfs, ay, dt, tau = 1):
+    """
+    A class to represent DMP parameters.
+    """
+    def __init__(self, n_dmps, n_bfs, ay, dt, tau=1):
         self.n_dmps = n_dmps
         self.n_bfs = n_bfs
         self.ay = ay
@@ -105,15 +146,18 @@ class DMPParameters:
         self.tau = tau
 
 class DatasetGenerator:
+    """
+    A class to generate a dataset of images and motions.
+    """
     def __init__(self, 
                  dataset_path,
                  img_path, 
                  pkl_path, 
                  img_dim, 
                  used_dim,
-                 remove_start_end = True,
-                 rotation_degrees = None,
-                 rotation_order = ['x', 'y', 'z']):
+                 remove_start_end=True,
+                 rotation_degrees=None,
+                 rotation_order=['x', 'y', 'z']):
         self.dataset_path = dataset_path
         if not isdir(self.dataset_path): makedirs(self.dataset_path)
         
@@ -163,6 +207,12 @@ class DatasetGenerator:
         self.parseMotion(remove_start_end)
         
     def parseMotion(self, remove_start_end):
+        """
+        Parse the motion data and segment it.
+
+        Parameters:
+        remove_start_end (bool): Whether to remove the start and end segments.
+        """
         print('Parsing motion...')
         self.segmented_motions = []
         
@@ -191,7 +241,7 @@ class DatasetGenerator:
                 new_seg = deepcopy(seg)
                 new_seg['ee_pose'] = seg['ee_pose'][:, self.used_dim[0]].reshape(-1, 1)
                 for dim in self.used_dim[1:]:
-                    new_seg['ee_pose'] = np.append(new_seg['ee_pose'], seg['ee_pose'][:, dim].reshape(-1, 1), axis = 1)
+                    new_seg['ee_pose'] = np.append(new_seg['ee_pose'], seg['ee_pose'][:, dim].reshape(-1, 1), axis=1)
                 trimmed_segments.append(new_seg)
                 
             if self.DATA['rotation_degrees'] is not None:
@@ -207,11 +257,7 @@ class DatasetGenerator:
                 
             full_motion = deepcopy(trimmed_segments[0]['ee_pose'])
             for seg in trimmed_segments[1:]:
-                full_motion = np.append(full_motion, seg['ee_pose'], axis = 0)
-                
-            # plt.scatter(range(len(full_motion)), full_motion[:, 1])
-            # plt.show()
-            # input()
+                full_motion = np.append(full_motion, seg['ee_pose'], axis=0)
                 
             self.DATA['original_trajectory'].append(full_motion)
             
@@ -220,6 +266,9 @@ class DatasetGenerator:
         self.DATA['segmented_dmp_max_seg_num'] = self.max_segment
         
     def generateName(self):
+        """
+        Generate a name for the dataset.
+        """
         self.generation_time = datetime.now().strftime('_%Y-%m-%d_%H-%M-%S')
         self.dataset_name += '_num.{}_dof.{}'.format(self.data_num, self.dof)
         self.dataset_name += '_dsdnet[seg.{}-bf.{}-ay.{}-dt.{}]'.format(self.max_segment,
@@ -241,7 +290,17 @@ class DatasetGenerator:
                  dsdnet_dmp_param,
                  cimednet_dmp_param,
                  cimednet_dmp_L_param,
-                 w_mean_filter = None):
+                 w_mean_filter=None):
+        """
+        Generate the dataset.
+
+        Parameters:
+        dataset_name (str): The name of the dataset.
+        dsdnet_dmp_param (DMPParameters): The DMP parameters for DSDNet.
+        cimednet_dmp_param (DMPParameters): The DMP parameters for CIMEDNet.
+        cimednet_dmp_L_param (DMPParameters): The DMP parameters for CIMEDNet_L.
+        w_mean_filter (float): The mean filter for w.
+        """
         self.dataset_name = dataset_name
         self.dsdnet_dmp_param = dsdnet_dmp_param
         self.cimednet_dmp_param = cimednet_dmp_param
@@ -261,9 +320,11 @@ class DatasetGenerator:
         self.listToStr()
         self.generateName()
         self.pklData()
-        # return self.final_DATA
         
     def generateDMPParameters(self):
+        """
+        Generate the DMP parameters for the dataset.
+        """
         print('Generating DMP parameters...')
         for i in range(self.data_num):
             dsdnet_y0s = []
@@ -308,6 +369,12 @@ class DatasetGenerator:
         
             
     def pad(self, w_mean_filter):
+        """
+        Pad the dataset to ensure all segments have the same length.
+
+        Parameters:
+        w_mean_filter (float): The mean filter for w.
+        """
         to_process = deepcopy(self.DATA)
 
         unique_lengths = []
@@ -371,30 +438,30 @@ class DatasetGenerator:
         for i in range(len(to_process['segmented_dmp_y0'])):
             if len(to_process['segmented_dmp_y0'][i]) < unique_lengths[-1]:
                 while len(to_process['segmented_dmp_y0'][i]) < unique_lengths[-1]:
-                    to_process['segmented_dmp_y0'][i].append(pads['y0'][len(to_process['segmented_dmp_y0'][i])].mean(axis = 0))
-                    to_process['segmented_dmp_goal'][i].append(pads['goal'][len(to_process['segmented_dmp_goal'][i])].mean(axis = 0))
-                    to_process['segmented_dmp_w'][i].append(pads['w'][len(to_process['segmented_dmp_w'][i])].mean(axis = 0))
-                    to_process['segmented_dmp_tau'][i].append(pads['tau'][len(to_process['segmented_dmp_tau'][i])].mean(axis = 0))
+                    to_process['segmented_dmp_y0'][i].append(pads['y0'][len(to_process['segmented_dmp_y0'][i])].mean(axis=0))
+                    to_process['segmented_dmp_goal'][i].append(pads['goal'][len(to_process['segmented_dmp_goal'][i])].mean(axis=0))
+                    to_process['segmented_dmp_w'][i].append(pads['w'][len(to_process['segmented_dmp_w'][i])].mean(axis=0))
+                    to_process['segmented_dmp_tau'][i].append(pads['tau'][len(to_process['segmented_dmp_tau'][i])].mean(axis=0))
                     
         DATA = to_process
 
-        DATA['image']                   = array(DATA['image'])
-        DATA['normal_dmp_goal']         = array(DATA['normal_dmp_goal']).reshape(self.data_num, 1, self.dof)
-        DATA['normal_dmp_w']            = array(DATA['normal_dmp_w']).reshape(self.data_num, 1, self.dof, DATA['normal_dmp_bf'])
-        DATA['normal_dmp_y0']           = array(DATA['normal_dmp_y0']).reshape(self.data_num, 1, self.dof)
-        DATA['normal_dmp_tau']          = array(DATA['normal_dmp_tau']).reshape(-1, 1)
-        DATA['normal_dmp_L_goal']         = array(DATA['normal_dmp_L_goal']).reshape(self.data_num, 1, self.dof)
-        DATA['normal_dmp_L_w']            = array(DATA['normal_dmp_L_w']).reshape(self.data_num, 1, self.dof, DATA['normal_dmp_L_bf'])
-        DATA['normal_dmp_L_y0']           = array(DATA['normal_dmp_L_y0']).reshape(self.data_num, 1, self.dof)
-        DATA['normal_dmp_L_tau']          = array(DATA['normal_dmp_tau']).reshape(-1, 1)
-        DATA['segmented_dmp_seg_num']   = array(DATA['segmented_dmp_seg_num']).reshape(-1, 1)
-        DATA['segmented_dmp_goal']      = array(DATA['segmented_dmp_goal'])
-        DATA['segmented_dmp_tau']       = array(DATA['segmented_dmp_tau'])
-        DATA['segmented_dmp_w']         = array(DATA['segmented_dmp_w'])
-        DATA['segmented_dmp_y0']        = array(DATA['segmented_dmp_y0'])
+        DATA['image'] = array(DATA['image'])
+        DATA['normal_dmp_goal'] = array(DATA['normal_dmp_goal']).reshape(self.data_num, 1, self.dof)
+        DATA['normal_dmp_w'] = array(DATA['normal_dmp_w']).reshape(self.data_num, 1, self.dof, DATA['normal_dmp_bf'])
+        DATA['normal_dmp_y0'] = array(DATA['normal_dmp_y0']).reshape(self.data_num, 1, self.dof)
+        DATA['normal_dmp_tau'] = array(DATA['normal_dmp_tau']).reshape(-1, 1)
+        DATA['normal_dmp_L_goal'] = array(DATA['normal_dmp_L_goal']).reshape(self.data_num, 1, self.dof)
+        DATA['normal_dmp_L_w'] = array(DATA['normal_dmp_L_w']).reshape(self.data_num, 1, self.dof, DATA['normal_dmp_L_bf'])
+        DATA['normal_dmp_L_y0'] = array(DATA['normal_dmp_L_y0']).reshape(self.data_num, 1, self.dof)
+        DATA['normal_dmp_L_tau'] = array(DATA['normal_dmp_tau']).reshape(-1, 1)
+        DATA['segmented_dmp_seg_num'] = array(DATA['segmented_dmp_seg_num']).reshape(-1, 1)
+        DATA['segmented_dmp_goal'] = array(DATA['segmented_dmp_goal'])
+        DATA['segmented_dmp_tau'] = array(DATA['segmented_dmp_tau'])
+        DATA['segmented_dmp_w'] = array(DATA['segmented_dmp_w'])
+        DATA['segmented_dmp_y0'] = array(DATA['segmented_dmp_y0'])
         
         if w_mean_filter is not None:
-            dist_w = np.abs((np.abs(DATA['segmented_dmp_w']) - np.abs(DATA['segmented_dmp_w']).mean(axis = 0)).mean(axis = (1, 2, 3)))
+            dist_w = np.abs((np.abs(DATA['segmented_dmp_w']) - np.abs(DATA['segmented_dmp_w']).mean(axis=0)).mean(axis=(1, 2, 3)))
             dist_w_sorted = np.sort(dist_w)
             dist_w_filtered = dist_w < w_mean_filter
     
@@ -402,10 +469,10 @@ class DatasetGenerator:
             
             DATA_FILTERED = deepcopy(DATA)
             
-            DATA_FILTERED['original_trajectory'] = [j for i,j in enumerate(DATA['original_trajectory']) if dist_w_filtered[i]]
-            DATA_FILTERED['segmented_dmp_trajectory'] = [j for i,j in enumerate(DATA['segmented_dmp_trajectory']) if dist_w_filtered[i]]
-            DATA_FILTERED['normal_dmp_trajectory'] = [j for i,j in enumerate(DATA['normal_dmp_trajectory']) if dist_w_filtered[i]]
-            DATA_FILTERED['normal_dmp_L_trajectory'] = [j for i,j in enumerate(DATA['normal_dmp_L_trajectory']) if dist_w_filtered[i]]
+            DATA_FILTERED['original_trajectory'] = [j for i, j in enumerate(DATA['original_trajectory']) if dist_w_filtered[i]]
+            DATA_FILTERED['segmented_dmp_trajectory'] = [j for i, j in enumerate(DATA['segmented_dmp_trajectory']) if dist_w_filtered[i]]
+            DATA_FILTERED['normal_dmp_trajectory'] = [j for i, j in enumerate(DATA['normal_dmp_trajectory']) if dist_w_filtered[i]]
+            DATA_FILTERED['normal_dmp_L_trajectory'] = [j for i, j in enumerate(DATA['normal_dmp_L_trajectory']) if dist_w_filtered[i]]
             DATA_FILTERED['image'] = DATA['image'][dist_w_filtered]
 
             DATA_FILTERED['normal_dmp_y0'] = DATA['normal_dmp_y0'][dist_w_filtered]
@@ -444,6 +511,9 @@ class DatasetGenerator:
         DATA_FILTERED['normal_dmp_seg_num'] = np.ones(self.data_num).reshape(-1, 1)
     
     def listToStr(self):
+        """
+        Convert the list of trajectories to string representation.
+        """
         DATA = deepcopy(self.padded_DATA)
         for i in range(self.data_num):
             DATA['original_trajectory'][i] = ndarray_to_str(DATA['original_trajectory'][i])
@@ -453,48 +523,51 @@ class DatasetGenerator:
         self.final_DATA = DATA
     
     def pklData(self):
+        """
+        Save the dataset as a pickle file.
+        """
         pkl.dump(self.final_DATA, open(join(self.dataset_path, self.dataset_name), 'wb'))
         print('Saved as\n{}'.format(self.dataset_name))
 
-if __name__=='__main__':
+if __name__ == '__main__':
     data_dir = '/home/edgar/rllab/data'
     data_name = 'pepper_shaking_6_target'
     img_dir = 'image/start'
     pkl_dir = 'motion'
     dataset_save_dir = join('/home/edgar/rllab/scripts/Segmented_Deep_DMPs/data/pkl/', data_name)
-    generator = DatasetGenerator(dataset_path = dataset_save_dir,
-                                 img_path = join(data_dir, data_name, img_dir), 
-                                 pkl_path = join(data_dir, data_name, pkl_dir), 
-                                 img_dim = (3, 100 ,100),
-                                 used_dim = [0, 1, 2],
-                                 rotation_degrees = [45, 45, 45],
-                                 rotation_order = ['x', 'y', 'z'])
+    generator = DatasetGenerator(dataset_path=dataset_save_dir,
+                                 img_path=join(data_dir, data_name, img_dir), 
+                                 pkl_path=join(data_dir, data_name, pkl_dir), 
+                                 img_dim=(3, 100, 100),
+                                 used_dim=[0, 1, 2],
+                                 rotation_degrees=[45, 45, 45],
+                                 rotation_order=['x', 'y', 'z'])
     
     n_dmps = 3
     base_bf = 50
     base_dt = 1e-3
     
-    dsdnet_dmp_param = DMPParameters(n_dmps = n_dmps,
-                                      n_bfs = base_bf,
-                                      ay = 15,
-                                      dt = base_dt * generator.max_segment)
+    dsdnet_dmp_param = DMPParameters(n_dmps=n_dmps,
+                                     n_bfs=base_bf,
+                                     ay=15,
+                                     dt=base_dt * generator.max_segment)
                                      
-    cimednet_dmp_param = DMPParameters(n_dmps = n_dmps,
-                                        n_bfs = base_bf * generator.max_segment,
-                                        ay = 25,
-                                        dt = base_dt)
+    cimednet_dmp_param = DMPParameters(n_dmps=n_dmps,
+                                       n_bfs=base_bf * generator.max_segment,
+                                       ay=25,
+                                       dt=base_dt)
                                        
-    cimednet_dmp_L_param = DMPParameters(n_dmps = n_dmps,
-                                        n_bfs = 1000,
-                                        ay = 25,
-                                        dt = base_dt)
+    cimednet_dmp_L_param = DMPParameters(n_dmps=n_dmps,
+                                         n_bfs=1000,
+                                         ay=25,
+                                         dt=base_dt)
     
-    generator.generate(dataset_name = data_name,
-                       dsdnet_dmp_param = dsdnet_dmp_param,
-                       cimednet_dmp_param = cimednet_dmp_param,
-                       cimednet_dmp_L_param = cimednet_dmp_L_param,
-                       w_mean_filter = 50)
+    generator.generate(dataset_name=data_name,
+                       dsdnet_dmp_param=dsdnet_dmp_param,
+                       cimednet_dmp_param=cimednet_dmp_param,
+                       cimednet_dmp_L_param=cimednet_dmp_L_param,
+                       w_mean_filter=50)
     
     print('\nMin w = {}\nMax w = {}'.format(generator.final_DATA['segmented_dmp_w'].min(), generator.final_DATA['segmented_dmp_w'].max()))
-    
-    
+
+

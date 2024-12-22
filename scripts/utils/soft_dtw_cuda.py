@@ -33,8 +33,7 @@ import math
 @cuda.jit
 def compute_softdtw_cuda(D, gamma, bandwidth, max_i, max_j, n_passes, R):
     """
-    :param seq_len: The length of the sequence (both inputs are assumed to be of the same size)
-    :param n_passes: 2 * seq_len - 1 (The number of anti-diagonals)
+    Compute the SoftDTW using CUDA.
     """
     # Each block processes one pair of examples
     b = cuda.blockIdx.x
@@ -77,6 +76,9 @@ def compute_softdtw_cuda(D, gamma, bandwidth, max_i, max_j, n_passes, R):
 # ----------------------------------------------------------------------------------------------------------------------
 @cuda.jit
 def compute_softdtw_backward_cuda(D, R, inv_gamma, bandwidth, max_i, max_j, n_passes, E):
+    """
+    Compute the backward pass of SoftDTW using CUDA.
+    """
     k = cuda.blockIdx.x
     tid = cuda.threadIdx.x
 
@@ -113,8 +115,7 @@ def compute_softdtw_backward_cuda(D, R, inv_gamma, bandwidth, max_i, max_j, n_pa
 # ----------------------------------------------------------------------------------------------------------------------
 class _SoftDTWCUDA(Function):
     """
-    CUDA implementation is inspired by the diagonal one proposed in https://ieeexplore.ieee.org/document/8400444:
-    "Developing a pattern discovery method in time series data and its GPU acceleration"
+    CUDA implementation of SoftDTW.
     """
 
     @staticmethod
@@ -183,6 +184,9 @@ class _SoftDTWCUDA(Function):
 # ----------------------------------------------------------------------------------------------------------------------
 @jit(nopython=True)
 def compute_softdtw(D, gamma, bandwidth):
+    """
+    Compute the SoftDTW using CPU.
+    """
     B = D.shape[0]
     N = D.shape[1]
     M = D.shape[2]
@@ -208,6 +212,9 @@ def compute_softdtw(D, gamma, bandwidth):
 # ----------------------------------------------------------------------------------------------------------------------
 @jit(nopython=True)
 def compute_softdtw_backward(D_, R, gamma, bandwidth):
+    """
+    Compute the backward pass of SoftDTW using CPU.
+    """
     B = D_.shape[0]
     N = D_.shape[1]
     M = D_.shape[2]
@@ -272,7 +279,7 @@ class _SoftDTW(Function):
 # ----------------------------------------------------------------------------------------------------------------------
 class SoftDTW(torch.nn.Module):
     """
-    The soft DTW implementation that optionally supports CUDA
+    The soft DTW implementation that optionally supports CUDA.
     """
 
     def __init__(self, use_cuda, gamma=1.0, normalize=False, bandwidth=None, dist_func=None):
@@ -380,6 +387,9 @@ def timed_run(a, b, sdtw):
 
 # ----------------------------------------------------------------------------------------------------------------------
 def profile(batch_size, seq_len_a, seq_len_b, dims, tol_backward):
+    """
+    Profile the forward and backward times for SoftDTW.
+    """
     sdtw = SoftDTW(False, gamma=1.0, normalize=False)
     sdtw_cuda = SoftDTW(True, gamma=1.0, normalize=False)
     n_iters = 6

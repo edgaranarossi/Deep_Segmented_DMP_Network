@@ -1,3 +1,9 @@
+"""
+Test DMP Integrator Script
+
+This script contains functions to test the DMP integrator for the Deep Segmented DMP Network.
+"""
+
 from utils.dataset_importer import MatDataLoader, PickleDataLoader
 from utils.networks import CNNDMPNet, NewCNNDMPNet, SegmentedDMPNet, DMPIntegratorNet
 from utils.trainer import Trainer
@@ -5,6 +11,7 @@ from os import makedirs, getcwd, chdir
 from os.path import join, isdir, dirname
 import pickle as pkl
 import torch
+
 ROOT_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
 chdir(ROOT_DIR)
 

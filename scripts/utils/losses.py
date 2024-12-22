@@ -3,10 +3,11 @@ from torch.nn import MSELoss
 from torch import ones, zeros, zeros_like, linspace, exp, clone, sum, cos, sin, tensor, cat, cdist, diff, clamp, floor, tile, sign
 from .soft_dtw_cuda import SoftDTW
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 class DMPIntegrationMSE:
     def __init__(self, train_param):
+        """
+        Initialize the DMPIntegrationMSE class with training parameters.
+        """
         self.train_param = train_param
         self.model_param = self.train_param.model_param
         self.dmp_param = self.model_param.dmp_param
@@ -22,6 +23,9 @@ class DMPIntegrationMSE:
         self.timesteps = self.dmp_param.timesteps
 
     def __call__(self, dmp_params, dmp_traj = None, rot_deg = None):
+        """
+        Calculate the DMP integration MSE loss.
+        """
         if rot_deg == None:
             rot_deg = tensor(0).to(DEVICE)
         self.integrateDMP(dmp_params, rot_deg)
@@ -31,12 +35,18 @@ class DMPIntegrationMSE:
             return loss
 
     def integrateDMP(self, dmp_params, rot_deg):
+        """
+        Integrate the DMP parameters.
+        """
         self.splitDMPparameters(dmp_params)
         self.initializeDMP()
         for t in range(self.timesteps):
             self.step(t, rot_deg)
 
     def splitDMPparameters(self, dmp_params):
+        """
+        Split the DMP parameters.
+        """
         self.batch_s = dmp_params.shape[0]
         if self.scale != None: dmp_params = self.scale.denormalize_torch(dmp_params)
         self.y0 = dmp_params[:, :2].reshape(self.batch_s, self.dof, 1)
@@ -44,6 +54,9 @@ class DMPIntegrationMSE:
         self.w = dmp_params[:, 4:].reshape(self.batch_s, self.dof, self.n_bf)
 
     def initializeDMP(self):
+        """
+        Initialize the DMP parameters.
+        """
         self.x = ones(self.batch_s, 1, 1).to(DEVICE)
         self.c = exp(-self.cs_ax * linspace(0, self.cs_runtime, self.n_bf).reshape(-1, 1)).to(DEVICE)
         self.h = ones(self.n_bf, 1).to(DEVICE) * self.n_bf**1.5 / self.c / self.cs_ax
@@ -55,6 +68,9 @@ class DMPIntegrationMSE:
         self.ddy_track = zeros(self.batch_s, self.timesteps, self.dof).to(DEVICE)
 
     def step(self, t, rot_deg):
+        """
+        Perform a single step of DMP integration.
+        """
         self.canonicalStep()
         psi = (exp(-self.h * (self.x - self.c)**2))
         f = self.frontTerm() * (self.w @ psi) / sum(psi, dim = 1).reshape(self.batch_s, 1, 1)
@@ -68,13 +84,22 @@ class DMPIntegrationMSE:
         self.ddy_track[:, t] = self.ddy.reshape(self.batch_s, self.dof)
 
     def canonicalStep(self):
+        """
+        Perform the canonical step for DMP.
+        """
         self.x = self.x + (-self.cs_ax * self.x * self.tau * self.dt)
 
     def frontTerm(self):
+        """
+        Calculate the front term for DMP.
+        """
         self.term = self.x * (self.goal - self.y0)
         return self.term
 
     def rotateCoord(self, y, y0, rot_deg):
+        """
+        Rotate the coordinates.
+        """
         px = y[:, 0]
         py = y[:, 1]
         
@@ -89,11 +114,17 @@ class DMPIntegrationMSE:
 
 class SegmentVelocityLoss:
     def __init__(self, train_param):
+        """
+        Initialize the SegmentVelocityLoss class with training parameters.
+        """
         self.train_param    = train_param
         self.model_param    = self.train_param.model_param
         self.dmp_param      = self.model_param.dmp_param
 
     def __call__(self, segment_start_end, sampling_ratio, original_traj):
+        """
+        Calculate the segment velocity loss.
+        """
         self.mse_loss           = MSELoss()
         self.batch_s            = segment_start_end.shape[0]
         self.pred_start_points  = segment_start_end[:, :-1, :]
@@ -156,6 +187,9 @@ class SegmentVelocityLoss:
 
 class SegmentLimitedMSE:
     def __init__(self, train_param):
+        """
+        Initialize the SegmentLimitedMSE class with training parameters.
+        """
         self.train_param    = train_param
         self.model_param    = self.train_param.model_param
         self.dmp_param      = self.model_param.dmp_param
@@ -163,6 +197,9 @@ class SegmentLimitedMSE:
         self.mse_loss       = MSELoss(reduction = 'none')
 
     def __call__(self, X, Y, num_segments_label):
+        """
+        Calculate the segment limited MSE loss.
+        """
         self.batch_s = Y.shape[0]
 
         total_loss = zeros(self.batch_s, 1).to(DEVICE)
@@ -172,3 +209,6 @@ class SegmentLimitedMSE:
             total_loss = total_loss + self.mse_loss(X[:, i, :], Y[:, i, :]).mean(dim = 1).reshape(-1, 1) * multiplier
         loss = total_loss.mean() / self.max_segments
         return loss
+
+if __name__ == '__main__':
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

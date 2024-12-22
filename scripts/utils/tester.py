@@ -15,10 +15,11 @@ from utils.networks import *
 from matplotlib import pyplot as plt
 from pydmps import DMPs_discrete
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 class Tester:
     def __init__(self, dataloaders: [DataLoader, DataLoader, DataLoader]):
+        """
+        Initialize the Tester class with data loaders.
+        """
         self.train_loaders = dataloaders[0]
         self.val_loaders = dataloaders[1]
         self.test_loaders = dataloaders[2]
@@ -29,6 +30,9 @@ class Tester:
         self.read_dataset()
     
     def read_dataset(self):
+        """
+        Read and print dataset information.
+        """
         print('Dataset lengths:')
         print('- Train dataset: {}'.format(len(self.train_dataset)))
         print('- Val dataset  : {}'.format(len(self.val_dataset)))
@@ -43,9 +47,15 @@ class Tester:
             print('Set input mode with set_input_mode')
             
     def set_input_mode(self, mode):
+        """
+        Set the input mode for the tester.
+        """
         self.input_mode = mode
         
     def predict_test(self, model, idx = None):
+        """
+        Predict the test data using the model.
+        """
         scaler = model.train_param.scaler
         if idx == None: idx = randint(len(self.test_dataset))
         input_data, output_data = self.test_dataset[idx]
@@ -60,6 +70,9 @@ class Tester:
         return rescaled_pred, input_data, output_data, pred
         
     def predict_val(self, model, idx = None):
+        """
+        Predict the validation data using the model.
+        """
         scaler = model.train_param.scaler
         if idx == None: idx = randint(len(self.val_dataset))
         input_data, output_data = self.val_dataset[idx]
@@ -74,6 +87,9 @@ class Tester:
         return rescaled_pred, input_data, output_data, pred
         
     def predict_train(self, model, idx = None):
+        """
+        Predict the training data using the model.
+        """
         scaler = model.train_param.scaler
         if idx == None: idx = randint(len(self.train_dataset))
         input_data, output_data = self.train_dataset[idx]
@@ -88,6 +104,9 @@ class Tester:
         return rescaled_pred, input_data, output_data, pred
 
 def str_to_ndarray(s):
+    """
+    Convert a string to a numpy ndarray.
+    """
     arr = []
     for line in s.split(';'):
         if len(line) > 0:
@@ -98,6 +117,9 @@ def str_to_ndarray(s):
     return array(arr)
 
 def plot_data_separately(data, names, titles):
+    """
+    Plot data separately with given names and titles.
+    """
     assert len(data) == len(names), "Number of data to plot doesn't match number of names"
     fig, axs = plt.subplots(len(data), 1)
     for title in range(len(data)):
@@ -107,9 +129,15 @@ def plot_data_separately(data, names, titles):
             axs[title].set_title(titles[title])
 
 def tensor_to_ndarray(t_list):
+    """
+    Convert a list of tensors to a list of numpy ndarrays.
+    """
     return [t.detach().cpu().numpy()[0] for t in t_list]
 
 def generate_dmp_traj(y0, goal, w, ay, dt, tau = 1.0):
+    """
+    Generate a DMP trajectory.
+    """
     # print(w.shape[1])
     dmp = DMPs_discrete(n_dmps = w.shape[0], 
                         n_bfs = w.shape[1], 
@@ -122,6 +150,7 @@ def generate_dmp_traj(y0, goal, w, ay, dt, tau = 1.0):
     return y_track, dy_track, ddy_track
 #%
 if __name__=='__main__':
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MODEL_NAME = 'Model_SegmentedDMPNetwork_2022-05-12_02-36-34'
     MODEL_NAME_2 = 'Model_NormalDMPJoinedNetwork_2022-05-12_02-37-30'
     

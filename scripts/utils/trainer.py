@@ -1,4 +1,3 @@
-# from numpy.core.fromnumeric import mean
 import torch
 import numpy as np
 from torch import mean, tensor, clone, zeros, ones, cat, clamp
@@ -16,12 +15,11 @@ from PIL import Image, ImageOps
 from multiprocessing import Process
 from bagpy import create_fig
 
-torch.autograd.set_detect_anomaly(True)
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-ROUND = 8
-
 class Trainer:
     def __init__(self, model : torch.nn.Module, train_param, save_path = None, log_writer_path = None, writer = None):
+        """
+        Initialize the Trainer class with model, training parameters, save path, log writer path, and writer.
+        """
         self.model = model
         self.train_param = train_param
         self.memory_limit = self.train_param.memory_percentage_limit
@@ -59,6 +57,9 @@ class Trainer:
         # input('init complete')
 
     def train(self, data_loaders : List[torch.utils.data.DataLoader], show_tau_error = True):
+        """
+        Train the model using the provided data loaders.
+        """
         self.show_tau_error = show_tau_error
         train_loaders = data_loaders[0]
         val_loaders = data_loaders[1]
@@ -163,11 +164,17 @@ class Trainer:
         print(datetime.now().strftime("%Y-%m-%d_%H-%M-%S ::"), "Training finished")
 
     def test(self, data_loaders : List[torch.utils.data.DataLoader], plot_comparison_idx = None):
+        """
+        Test the model using the provided data loaders.
+        """
         test_loaders = data_loaders[2]
         _, test_losses = self.getLosses(test_loaders, train = False, plot_comparison_idx = plot_comparison_idx)
         print(datetime.now().strftime("%Y-%m-%d_%H-%M-%S ::"), 'Test Loss :', mean(test_losses).item())
 
     def getLosses(self, data_loader, train = True, plot_comparison_idx = None):
+        """
+        Calculate the losses for the given data loader.
+        """
         predictions = []
         losses = []
 
@@ -341,6 +348,9 @@ class Trainer:
         return predictions, losses
 
     def plot(self, y_pred, y_label, img = None):
+        """
+        Plot the predicted and labeled trajectories.
+        """
         if img.any() != None: plt.imshow(img, origin = 'lower', cmap='gray')
         plt.plot(y_label[:, 0], y_label[:, 1], lw = 5, c = 'g')
         plt.scatter(y_pred[:, 0], y_pred[:, 1], c = 'r', zorder = 5)
@@ -348,6 +358,9 @@ class Trainer:
         plt.show()
 
     def checkStoppingCondition(self):
+        """
+        Check the stopping conditions for training.
+        """
         if psutil.virtual_memory().percent > self.memory_limit:
             self.training = False
             self.train_param.writeLog('\nStopping Reason : Out of Memory (>{}%)'.format(self.memory_limit))
@@ -362,6 +375,9 @@ class Trainer:
             self.train_param.writeLog('\nStopping Reason : Loss threshold exceeded')
 
     def writeTensorboardLogs(self):
+        """
+        Write logs to Tensorboard.
+        """
         if self.writer != None: 
             # print('tensorboard logging')
             self.writer.add_scalar('data/train_loss', self.mean_train_losses[-1], self.epoch)
@@ -378,6 +394,9 @@ class Trainer:
             self.writer.add_scalar('data/val_fail_count', self.val_fail_count, self.epoch)
 
     def plotTrajectory(self, original_traj, pred_traj):
+        """
+        Plot the original and predicted trajectories.
+        """
         base_size = 6
         fig, axs = plt.subplots(2, len(original_traj), figsize=(base_size*len(original_traj), 2 * base_size))
         if self.epoch != 0: title = 'Trajectory Reconstruction - Epoch ' + str(self.epoch)
@@ -429,3 +448,8 @@ class Trainer:
         # plt.plot(pred_traj[:, 0], pred_traj[:, 1], color = 'red', linestyle = '--')
         # plt.draw()
         # plt.show(block=False)
+
+if __name__ == '__main__':
+    torch.autograd.set_detect_anomaly(True)
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    ROUND = 8

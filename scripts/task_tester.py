@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Sep 13 22:22:00 2022
+Task Tester Script
 
-@author: edgar
+This script contains functions to test various tasks for the Deep Segmented DMP Network.
 """
 
 import numpy as np
@@ -27,8 +27,19 @@ from dtaidistance import dtw
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+def rot3d(origin, traj, degrees, order=None):
+    """
+    Rotate a 3D trajectory around a given origin.
 
-def rot3d(origin, traj, degrees, order = None):
+    Parameters:
+    origin (array): The origin point for rotation.
+    traj (array): The trajectory to be rotated.
+    degrees (tuple): The rotation angles in degrees for x, y, and z axes.
+    order (list): The order of rotation axes.
+
+    Returns:
+    array: The rotated trajectory.
+    """
     deg_x, deg_y, deg_z = degrees
     deg_x = np.deg2rad(deg_x)
     deg_y = np.deg2rad(deg_y)
@@ -67,8 +78,18 @@ def rot3d(origin, traj, degrees, order = None):
     
     return t
 
-def rot2D(traj, degrees, origin = np.array([0., 0.])):
-    
+def rot2D(traj, degrees, origin=np.array([0., 0.])):
+    """
+    Rotate a 2D trajectory around a given origin.
+
+    Parameters:
+    traj (array): The trajectory to be rotated.
+    degrees (float): The rotation angle in degrees.
+    origin (array): The origin point for rotation.
+
+    Returns:
+    array: The rotated trajectory.
+    """
     s = sin(degrees)
     c = cos(degrees)
     
@@ -83,6 +104,16 @@ def rot2D(traj, degrees, origin = np.array([0., 0.])):
     return t
 
 def sampling_rmse(y1, y2):
+    """
+    Calculate the RMSE between two trajectories with different sampling rates.
+
+    Parameters:
+    y1 (array): The first trajectory.
+    y2 (array): The second trajectory.
+
+    Returns:
+    tuple: The RMSE, sampled longer trajectory, and sampled shorter trajectory.
+    """
     # print(y1.shape[0], y2.shape[0])
     if y1.shape[0] > y2.shape[0]:
         y_l = deepcopy(y1)
@@ -121,6 +152,12 @@ def sampling_rmse(y1, y2):
         return rmse, y_s, sampled_y_l
     
 def generate_cutting_image_motion():
+    """
+    Generate a cutting image motion.
+
+    Returns:
+    tuple: The generated image, input image tensor, and segmented DMP trajectory.
+    """
     IMG_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/data/images/cutting/task_test'
     
     base_shape = array([[0.25, 0.0],
@@ -168,7 +205,17 @@ def generate_cutting_image_motion():
     
     return img, input_image, segment_dmp_trajectory
 
-def generate_pickplace_image_motion(task, num_object = None):
+def generate_pickplace_image_motion(task, num_object=None):
+    """
+    Generate a pick and place image motion.
+
+    Parameters:
+    task (str): The task type.
+    num_object (int): The number of objects.
+
+    Returns:
+    tuple: The generated image, input image tensor, y_label, and pickplace generator.
+    """
     root_data_dir = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/data'
     task_test_img_dir = join(root_data_dir, 'images/stacking/task_test')
     task_test_pkl_dir = join(root_data_dir, 'images/stacking/task_test')
@@ -185,7 +232,17 @@ def generate_pickplace_image_motion(task, num_object = None):
     
     return img, input_image, y_label, pickplacegen
 
-def read_test_data(dataset, test_idx):        
+def read_test_data(dataset, test_idx):
+    """
+    Read test data from the dataset.
+
+    Parameters:
+    dataset (Dataset): The dataset to read from.
+    test_idx (int): The index of the test data.
+
+    Returns:
+    tuple: The image, input image tensor, y_label, rotation degrees, and rotation order.
+    """
     original_padding = np.array([50, 20, 23])
     # original_padding = np.array([0, 0, 0])
     padding = deepcopy(original_padding)
@@ -225,6 +282,9 @@ def read_test_data(dataset, test_idx):
     return img, input_image, y_label, rot_degrees, rot_order
     #%%
 if __name__=='__main__':
+    """
+    Main function to run the task tester script.
+    """
     runcell(0, '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs/scripts/task_tester.py')
     # task = 'cutting'
     # task = 'cutting-limited'
@@ -333,7 +393,7 @@ if __name__=='__main__':
     scaler = dsdnet_train_param.scaler
     dsdnet_output_mode = dsdnet_model_param.output_mode
     if cimednet_name != None: cimednet_output_mode = cimednet_model_param.output_mode
-    if cimednet_L_name != None: cimednet_L_output_mode = cimednet_model_param.output_mode
+    if cimednet_L_name != None: cimednet_L_output_mode = cimednet_L_model_param.output_mode
     keys_to_normalize = dsdnet_model_param.keys_to_normalize
     
     #%%

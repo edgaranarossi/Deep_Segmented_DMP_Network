@@ -1,7 +1,8 @@
 import torch
 from torch import ones, zeros, linspace, exp, clone, sum, cos, sin, tensor, cat, from_numpy
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+if __name__ == '__main__':
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 """
 Based on studywolf's pydmps
@@ -11,6 +12,16 @@ https://pypi.org/project/pydmps/
 
 class DMPs_discrete_torch:
     def __init__(self, n_dmps, n_bfs, ay, dt, by = None):
+        """
+        Initialize the DMPs_discrete_torch class.
+
+        Parameters:
+        n_dmps (int): Number of dynamic movement primitives.
+        n_bfs (int): Number of basis functions.
+        ay (float): Gain term for the dynamical system.
+        dt (float): Time step.
+        by (float, optional): Gain term for the dynamical system. Defaults to ay/4.
+        """
         self.dof = n_dmps
         self.dt = dt
         self.n_bf = n_bfs
@@ -27,6 +38,18 @@ class DMPs_discrete_torch:
         self.goal = None    # shape: (batch_size, dof, 1)
 
     def rollout(self, prev_dy = None, prev_ddy = None, tau = None, rot_deg = None):
+        """
+        Perform a rollout of the DMP.
+
+        Parameters:
+        prev_dy (tensor, optional): Previous velocity. Defaults to None.
+        prev_ddy (tensor, optional): Previous acceleration. Defaults to None.
+        tau (float, optional): Temporal scaling factor. Defaults to None.
+        rot_deg (tensor, optional): Rotation degree. Defaults to None.
+
+        Returns:
+        tuple: y_track, dy_track, ddy_track
+        """
         assert self.w != None and self.y0 != None and self.goal != None
         self.batch_s = self.w.shape[0]
 
@@ -43,7 +66,13 @@ class DMPs_discrete_torch:
         return self.y_track, self.dy_track, self.ddy_track
 
     def reset_state(self, dy = None, ddy = None):
-        # print(dy.shape)
+        """
+        Reset the state of the DMP.
+
+        Parameters:
+        dy (tensor, optional): Initial velocity. Defaults to None.
+        ddy (tensor, optional): Initial acceleration. Defaults to None.
+        """
         self.x = ones(self.batch_s, 1, 1).to(DEVICE)
         self.c = exp(-self.cs_ax * linspace(0, self.cs_runtime, self.n_bf).reshape(-1, 1)).to(DEVICE)
         self.h = ones(self.n_bf, 1).to(DEVICE) * self.n_bf**1.5 / self.c / self.cs_ax
@@ -55,6 +84,13 @@ class DMPs_discrete_torch:
         self.ddy_track = zeros(self.batch_s, self.timesteps, self.dof).to(DEVICE)
 
     def step(self, t, rot_deg):
+        """
+        Perform a single step of the DMP.
+
+        Parameters:
+        t (int): Current timestep.
+        rot_deg (tensor): Rotation degree.
+        """
         self.canonicalStep()
         psi = (exp(-self.h * (self.x - self.c)**2))
         f = self.frontTerm() * (self.w @ psi) / sum(psi, dim = 1).reshape(self.batch_s, 1, 1)
@@ -72,14 +108,33 @@ class DMPs_discrete_torch:
         self.ddy_track[:, t] = self.ddy.reshape(self.batch_s, self.dof)
 
     def canonicalStep(self):
+        """
+        Update the canonical system state.
+        """
         self.x = self.x + (-self.cs_ax * self.x * self.tau * self.dt)
 
     def frontTerm(self):
+        """
+        Compute the front term of the DMP.
+
+        Returns:
+        tensor: The front term.
+        """
         self.term = self.x * (self.goal - self.y0)
         return self.term
 
     def rotateCoord(self, y, y0, rot_deg):
-        # print(y.shape, y0.shape)
+        """
+        Rotate the coordinates.
+
+        Parameters:
+        y (tensor): Current position.
+        y0 (tensor): Initial position.
+        rot_deg (tensor): Rotation degree.
+
+        Returns:
+        tensor: Rotated coordinates.
+        """
         px = y[:, 0]
         py = y[:, 1]
         
@@ -88,6 +143,5 @@ class DMPs_discrete_torch:
         
         new_x = cos(rot_deg).to(DEVICE) * (px-cx) - sin(rot_deg).to(DEVICE) * (py-cy) + cx
         new_y = sin(rot_deg).to(DEVICE) * (px-cx) + cos(rot_deg).to(DEVICE) * (py-cy) + cy
-        # print(new_x.shape, new_y.shape)
         y_rot = cat([new_x, new_y], dim = 1).reshape(y.shape[0], self.dof, 1)
         return y_rot

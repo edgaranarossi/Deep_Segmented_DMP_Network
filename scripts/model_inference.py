@@ -18,21 +18,44 @@ from utils.dataset_importer import str_to_ndarray
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+def load_model_parameters(model_path):
+    """
+    Load model parameters from the specified path.
+    
+    Parameters:
+    model_path (str): Path to the model parameters.
+    
+    Returns:
+    dict: Loaded model parameters.
+    """
+    return pkl.load(open(join(model_path, 'train-model-dmp_param.pkl'), 'rb'))
+
+def load_data_loaders(model_path):
+    """
+    Load data loaders from the specified path.
+    
+    Parameters:
+    model_path (str): Path to the data loaders.
+    
+    Returns:
+    tuple: Train, validation, and test data loaders.
+    """
+    return pkl.load(open(join(model_path, 'data_loaders.pkl'), 'rb'))
+
 if __name__=='__main__':
     ROOT_DIR = '/home/edgar/rllab/scripts/dmp/SegmentedDeepDMPs'
     MODEL_NAME = 'Model_SegmentedDMPNetwork_2022-07-09_20-15-36'
     MODEL_TYPE = MODEL_NAME.split('_')[1]
     MODEL_PATH = join(ROOT_DIR, 'models', MODEL_TYPE, MODEL_NAME)
-    # BEST_PARAM_PATH = join(MODEL_PATH, 'final_net_parameters')
     BEST_PARAM_PATH = join(MODEL_PATH, 'best_net_parameters')
     
-    train_param = pkl.load(open(join(MODEL_PATH, 'train-model-dmp_param.pkl'), 'rb'))
+    train_param = load_model_parameters(MODEL_PATH)
     model_param = train_param.model_param
     dmp_param_sd = model_param.dmp_param
     scaler = train_param.scaler
     output_mode = model_param.output_mode
     keys_to_normalize = model_param.keys_to_normalize
-    train_loader, val_loader, test_loader = pkl.load(open(join(MODEL_PATH, 'data_loaders.pkl'), 'rb'))
+    train_loader, val_loader, test_loader = load_data_loaders(MODEL_PATH)
     train_dataset = train_loader.dataset
     val_dataset = val_loader.dataset
     test_dataset = test_loader.dataset
@@ -49,7 +72,7 @@ if __name__=='__main__':
         POS_MODEL_PATH = join(ROOT_DIR, 'models', POS_MODEL_TYPE, POS_MODEL_NAME)
         POS_BEST_PARAM_PATH = join(POS_MODEL_PATH, 'best_net_parameters')
         
-        pos_model_train_param = pkl.load(open(join(POS_MODEL_PATH, 'train-model-dmp_param.pkl'), 'rb'))
+        pos_model_train_param = load_model_parameters(POS_MODEL_PATH)
         
         model = SegmentedDMPNetworkV2(train_param)
         pos_model = PositionNetwork(pos_model_train_param)
